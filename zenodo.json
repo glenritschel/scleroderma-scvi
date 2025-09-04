@@ -1,0 +1,33 @@
+{
+  "title": "Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration",
+  "upload_type": "software",
+  "description": "Code, notebooks, and processed outputs for systemic sclerosis single-cell analysis using Scanpy and scvi-tools (scVI/totalVI/scANVI), with Open Targets integration. Portions of code scaffolding generated with ChatGPT and validated by the author.",
+  "creators": [
+    {
+      "name": "Ritschel, Glen C.",
+      "orcid": "0000-0000-0000-0000",
+      "affiliation": "Ritschel Research"
+    }
+  ],
+  "keywords": [
+    "systemic sclerosis",
+    "CREST syndrome",
+    "autoimmune disease",
+    "single-cell RNA-seq",
+    "scvi-tools",
+    "Open Targets",
+    "AI-augmented research",
+    "drug discovery"
+  ],
+  "license": "MIT",
+  "version": "1.0.0",
+  "publication_date": "2025-09-04",
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/glenritschel/scleroderma-scvi",
+      "resource_type": "software"
+    }
+  ]
+}
