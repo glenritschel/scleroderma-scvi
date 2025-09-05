@@ -4,6 +4,13 @@ import re
 import scanpy as sc
 import anndata as ad
 
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message=".*Variable names are not unique.*"
+)
+
 RAW = Path("data/raw")
 PROC = Path("data/processed")
 PROC.mkdir(parents=True, exist_ok=True)
@@ -13,32 +20,79 @@ def _sample_name_from_path(p: Path) -> str:
     return m.group(1) if m else p.stem
 
 def load_any_merge(path: Path) -> ad.AnnData:
+    import anndata as ad
     h5s = sorted(path.glob("**/*.h5"))
     if h5s:
         adatas = []
+        batch_names = []
         for p in h5s:
-            adata_i = sc.read_10x_h5(p)
-            adata_i.obs["sample"] = _sample_name_from_path(p)
-            adatas.append(adata_i)
-        if len(adatas) == 1:
-            return adatas[0]
-        return adatas[0].concatenate(*adatas[1:], batch_key="sample",
-                                     batch_categories=[a.obs["sample"][0] for a in adatas])
+            print(f"[info] loading 10x HDF5: {p}")
+            a = sc.read_10x_h5(p)
+
+            # Prefer stable gene IDs as var_names if present
+            if "gene_ids" in a.var.columns:
+                a.var["gene_symbol"] = a.var_names  # keep symbols
+                a.var_names = a.var["gene_ids"].astype(str)
+
+            # Ensure uniqueness
+            a.var_names_make_unique()
+            a.obs_names_make_unique()
+
+            # Track sample name
+            s = _sample_name_from_path(p)
+            a.obs["sample"] = s
+            adatas.append(a)
+            batch_names.append(s)
+
+        # Concatenate safely (prefix obs names by sample, keep outer union of genes)
+        merged = ad.concat(
+            adatas,
+            axis=0,
+            join="outer",
+            label="sample",
+            keys=batch_names,
+            index_unique="-",   # make obs_names like <barcode>-<sample>
+            merge="same"
+        )
+        merged.var_names_make_unique()
+        merged.obs_names_make_unique()
+        return merged
+
+    # ---- SAME LOGIC for .h5ad and MTX as before, but apply the same hygiene ----
     h5ads = sorted(path.glob("**/*.h5ad"))
     if len(h5ads) > 1:
-        adatas = []
+        adatas, batch_names = [], []
         for p in h5ads:
-            adata_i = sc.read_h5ad(p)
-            adata_i.obs["sample"] = _sample_name_from_path(p)
-            adatas.append(adata_i)
-        return adatas[0].concatenate(*adatas[1:], batch_key="sample",
-                                     batch_categories=[a.obs["sample"][0] for a in adatas])
+            a = sc.read_h5ad(p)
+            if "gene_ids" in a.var.columns:
+                a.var["gene_symbol"] = a.var_names
+                a.var_names = a.var["gene_ids"].astype(str)
+            a.var_names_make_unique()
+            a.obs_names_make_unique()
+            s = _sample_name_from_path(p)
+            a.obs["sample"] = s
+            adatas.append(a)
+            batch_names.append(s)
+        return ad.concat(adatas, axis=0, join="outer", label="sample", keys=batch_names, index_unique="-", merge="same")
     elif len(h5ads) == 1:
-        return sc.read_h5ad(h5ads[0])
-    mtx_dirs = [p for p in path.glob("**/*") if p.is_dir() and (p/'matrix.mtx').exists()]
+        a = sc.read_h5ad(h5ads[0])
+        if "gene_ids" in a.var.columns:
+            a.var["gene_symbol"] = a.var_names
+            a.var_names = a.var["gene_ids"].astype(str)
+        a.var_names_make_unique()
+        a.obs_names_make_unique()
+        return a
+
+    mtx_dirs = [p for p in path.glob("**/*") if p.is_dir() and (p/"matrix.mtx").exists()]
     if mtx_dirs:
-        return sc.read_10x_mtx(mtx_dirs[0], var_names='gene_symbols', cache=True)
+        a = sc.read_10x_mtx(mtx_dirs[0], var_names="gene_symbols", cache=True)
+        # For MTX we only have symbols; just make unique
+        a.var_names_make_unique()
+        a.obs_names_make_unique()
+        return a
+
     raise FileNotFoundError("No supported data found. Place .h5, .h5ad, or a 10x mtx folder under data/raw/.")
+
 
 def basic_qc(adata, min_genes=200, max_mito=0.10, min_cells_per_gene=3):
     adata.var["mt"] = adata.var_names.str.upper().str.startswith(("MT-", "MT."))
@@ -50,6 +104,8 @@ def basic_qc(adata, min_genes=200, max_mito=0.10, min_cells_per_gene=3):
 
 def run_qc(output="ssc_skin_qc.h5ad"):
     adata = load_any_merge(RAW)
+    adata.var_names_make_unique()
+    adata.obs_names_make_unique()
     print(f"[info] raw shape: {adata.shape}")
     adata = basic_qc(adata)
     print(f"[info] post-QC shape: {adata.shape}")

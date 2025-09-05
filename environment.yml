@@ -11,6 +11,11 @@ dependencies:
   - seaborn
   - jupyterlab
   - requests
+  - scikit-misc
+  - python-igraph
+  - louvain
+  - leidenalg
+
   - pip
   - pip:
     - gprofiler-official
