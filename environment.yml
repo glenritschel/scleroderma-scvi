@@ -21,3 +21,4 @@ dependencies:
     - gprofiler-official
     - scrublet
     - GEOparse
+    - gseapy==1.1.10

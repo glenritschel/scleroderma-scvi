@@ -1,8 +1,57 @@
-.ipynb_checkpoints/
+# --- OS / editor cruft ---
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# --- Python / Jupyter ---
 __pycache__/
-*.pyc
-data/processed/*.h5ad
-results/tables/*.csv
-*.zip
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Environments / secrets ---
+.venv/
+venv/
+env/
+*.env
+.envrc
+
+# --- Data (keep only README stubs) ---
 data/raw/**
-!data/raw/.gitkeep
+data/interim/**
+data/external/**
+data/processed/**/*.{h5ad,loom,mtx,mtx.gz,h5,parquet,pq,feather,pkl,npy,npz}
+!data/**/README.md
+
+# --- Figures & large generated images ---
+figures/**
+results/figures/**
+results/**/*.png
+results/**/*.pdf
+results/**/*.svg
+
+# --- Results: drug repurposing intermediates ---
+results/drug_repurposing/**/*
+# Keep the final, shareable outputs:
+!results/drug_repurposing/final_shortlist_ranked.csv
+!results/drug_repurposing/final_bundle/**
+!results/drug_repurposing/README_overview.md
+
+# (Optional) if you want to keep per-compound plots out explicitly:
+results/drug_repurposing/dose_time_plots/**
+
+# --- Results: tables (ignore most, keep key summaries) ---
+results/tables/**
+!results/tables/rank_genes_groups_leiden_wilcoxon.csv
+!results/tables/cluster_sizes.csv
+
+# --- Logs ---
+logs/**
+*.log
+

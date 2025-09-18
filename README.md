@@ -46,3 +46,17 @@ python src/preprocess.py
 python src/modeling.py
 python src/de_analysis.py
 ```
+
+# Maintenance
+## 100) Reproducible env TODO
+- When environment stabilizes:
+  - Run: conda-lock -f environment.yml -p linux-64 -p osx-64 -p win-64
+  - Commit: conda-lock.yml and platform lockfiles
+- Interim: keep key versions pinned in environment.yml (scanpy, scvi-tools, anndata, gseapy).
+
+### Current Versions
+- python: 3.10.18
+- scanpy: 1.11.4
+- scvi-tools: 1.3.3
+- anndata: 0.11.4
+- gseapy: 1.1.10
