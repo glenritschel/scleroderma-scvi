@@ -55,3 +55,4 @@ results/tables/**
 logs/**
 *.log
 
+data/processed/*.h5ad
