@@ -1,6 +1,6 @@
 # Drug-repurposing overview
 
-*Updated:* 2025-09-17
+*Updated:* 2025-09-18
 
 This figure summarizes our LINCS reversal analysis for scleroderma skin single-cell states.
 

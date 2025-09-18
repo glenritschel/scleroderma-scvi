@@ -22,3 +22,4 @@ dependencies:
     - scrublet
     - GEOparse
     - gseapy==1.1.10
+    - tabulate

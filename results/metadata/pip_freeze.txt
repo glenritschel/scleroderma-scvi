@@ -38,6 +38,7 @@ fonttools @ file:///home/conda/feedstock_root/build_artifacts/fonttools_17563286
 fqdn @ file:///home/conda/feedstock_root/build_artifacts/fqdn_1733327382592/work/dist
 fsspec @ file:///home/conda/feedstock_root/build_artifacts/fsspec_1756908513222/work
 GEOparse==2.0.4
+git-filter-repo==2.47.0
 gmpy2 @ file:///home/conda/feedstock_root/build_artifacts/gmpy2_1756739567949/work
 gprofiler-official==1.0.0
 grpcio @ file:///home/conda/feedstock_root/build_artifacts/grpc-split_1745213340714/work
