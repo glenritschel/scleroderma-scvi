@@ -4,9 +4,13 @@
   "description": "Code, notebooks, and processed outputs for systemic sclerosis single-cell analysis using Scanpy and scvi-tools (scVI/totalVI/scANVI), with Open Targets integration. Portions of code scaffolding generated with ChatGPT and validated by the author.",
   "creators": [
     {
-      "name": "Ritschel, Glen C.",
-      "orcid": "0000-0000-0000-0000",
-      "affiliation": "Ritschel Research"
+      "person_or_org": {
+        "type": "person",
+        "given_name": "Glen",
+        "family_name": "Ritschel",
+        "identifiers": [{"scheme": "orcid", "identifier": "0009-0006-5341-8840"}]
+      },
+      "affiliations": [{"name": "Ritschel Research"}]
     }
   ],
   "keywords": [
@@ -20,8 +24,7 @@
     "drug discovery"
   ],
   "license": "MIT",
-  "version": "1.0.0",
-  "publication_date": "2025-09-04",
+  "publication_date": "2025-09-18",
   "access_right": "open",
   "related_identifiers": [
     {
