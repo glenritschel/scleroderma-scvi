@@ -56,3 +56,15 @@ logs/**
 *.log
 
 data/processed/*.h5ad
+
+# Allow the final drug-repurposing bundle
+!results/
+!results/drug_repurposing/
+!results/drug_repurposing/final_bundle/
+!results/drug_repurposing/final_bundle/**
+!results/drug_repurposing/final_bundle.zip
+
+# Still ignore other big zips
+results/ssc_drugrepurposing_quick.zip
+*.zip
+!results/drug_repurposing/final_bundle.zip
