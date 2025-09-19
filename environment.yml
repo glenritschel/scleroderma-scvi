@@ -1,25 +1,9 @@
-name: ssc-scvi
-channels: [conda-forge]
+name: base
+channels:
+  - conda-forge
 dependencies:
-  - python=3.10
-  - scanpy>=1.9
-  - scvi-tools>=1.1
-  - anndata
-  - numpy
-  - pandas
-  - matplotlib
-  - seaborn
-  - jupyterlab
-  - requests
-  - scikit-misc
-  - python-igraph
-  - louvain
-  - leidenalg
-
+  - python=3.12
+  - conda==25.3.1
+  - mamba==2.1.1
   - pip
-  - pip:
-    - gprofiler-official
-    - scrublet
-    - GEOparse
-    - gseapy==1.1.10
-    - tabulate
+prefix: /home/glen/miniforge3
