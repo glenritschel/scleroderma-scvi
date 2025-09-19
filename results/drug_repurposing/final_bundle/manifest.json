@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-09-18T15:38:44",
+  "python": "3.10.18",
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "packages": {
+    "pandas": "2.3.2",
+    "scanpy": "1.11.4",
+    "gseapy": "1.1.10"
+  },
+  "files": [
+    "final_shortlist_ranked.csv",
+    "shortlist_shareable.csv",
+    "dose_time_consistency_summary.csv",
+    "lincs_reversal_top15_by_cluster.csv",
+    "lincs_reversal_crosscluster.csv",
+    "lincs_reversal_aggregate.csv",
+    "candidate_slate_all.csv",
+    "candidate_slate_fibrolineage.csv",
+    "shortlist_fibro_clinical_view.csv",
+    "shortlist_fibro_clinical_view_strict.csv",
+    "shortlist_fibro_with_target_presence.csv",
+    "shortlist_fibro_with_target_presence_raw.csv",
+    "fig_final_shortlist_bar.png",
+    "onepager_BI-2536.png",
+    "onepager_I-BET.png",
+    "onepager_I-BET151.png",
+    "onepager_JNK-9L.png",
+    "onepager_PD-0325901.png",
+    "onepager_PD-184352.png",
+    "onepager_WZ-3105.png",
+    "onepager_gefitinib.png",
+    "onepager_pelitinib.png",
+    "onepager_sirolimus.png"
+  ]
+}

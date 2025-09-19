@@ -1,40 +1,47 @@
 {
-  "metadata": {
-    "title": "Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration",
-    "description": "Code, notebooks, and processed outputs for systemic sclerosis single-cell analysis using Scanpy and scvi-tools (scVI/totalVI/scANVI), with Open Targets integration. Portions of code scaffolding generated with ChatGPT and validated by the author.",
-    "creators": [
-      {
-        "person_or_org": {
-          "type": "person",
-          "given_name": "Glen",
-          "family_name": "Ritschel"
-        },
-        "affiliations": [
-          { "name": "Ritschel Research" }
-        ]
-      }
-    ],
-    "resource_type": { "id": "software" },
-    "publication_date": "2025-09-18",
-    "license": { "id": "mit" },
-    "access_right": "open",
-    "keywords": [
-      "systemic sclerosis",
-      "CREST syndrome",
-      "autoimmune disease",
-      "single-cell RNA-seq",
-      "scvi-tools",
-      "Open Targets",
-      "AI-augmented research",
-      "drug discovery"
-    ],
-    "related_identifiers": [
-      {
-        "identifier": "https://github.com/glenritschel/scleroderma-scvi",
-        "scheme": "url",
-        "relation_type": "isSupplementTo",
-        "resource_type": "software"
-      }
-    ]
-  }
+  "title": "Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration",
+  "upload_type": "software",
+  "description": "Systemic sclerosis (scleroderma/CREST) features immune dysregulation, fibroblast activation, and progressive tissue remodeling. This repository provides a reproducible single-cell analysis pipeline and drug-repurposing workflow for systemic-sclerosis skin. Using Scanpy and scvi-tools, we integrate samples, perform rigorous QC, and learn a shared latent space with scVI/scANVI to harmonize batches and annotate major cell types (fibroblasts, myofibroblasts, keratinocyte states, endothelial/lymphatic endothelium, myeloid, T/B/plasma cells, dendritic subsets). Differential expression and pathway enrichment (Reactome/GO/KEGG) define state-specific signatures, which are then contrasted against LINCS L1000 perturbational profiles via Enrichr to identify compounds whose transcriptional responses most strongly reverse disease-associated programs. We aggregate reversal evidence across clusters, summarize by mechanism of action, and prioritize candidates with simple robustness checks (dose/time consistency, cross-cluster support). The repository ships notebooks, figures, and a compact “final bundle” (CSV/PNG/HTML) to enable rapid review and downstream validation. All steps—environment, data provenance, parameters, and seeds—are documented to support repeatability. This is research code and not a clinical tool; LINCS cell-line perturbations and bulk-like signatures are proxies for in-tissue effects.",
+  "creators": [
+    {
+      "person_or_org": {
+        "type": "person",
+        "given_name": "Glen C.",
+        "family_name": "Ritschel"
+      },
+      "affiliations": [
+        {"name": "Ritschel Research"}
+      ]
+    }
+  ],
+  "keywords": [
+    "systemic sclerosis",
+    "scleroderma",
+    "CREST",
+    "single-cell RNA-seq",
+    "scRNA-seq",
+    "Scanpy",
+    "scvi-tools",
+    "AnnData",
+    "probabilistic modeling",
+    "cell-type annotation",
+    "differential expression",
+    "pathway enrichment",
+    "LINCS L1000",
+    "Enrichr",
+    "drug repurposing",
+    "mechanism of action",
+    "fibroblast",
+    "myofibroblast",
+    "reproducible research"
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/glenritschel/scleroderma-scvi",
+      "resource_type": "software"
+    }
+  ]
 }

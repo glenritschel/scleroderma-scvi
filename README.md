@@ -1,5 +1,7 @@
 # Systemic Sclerosis Single-Cell Atlas with scvi-tools
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17156333.svg)](https://doi.org/10.5281/zenodo.17156333)
+
 This repository contains a reproducible pipeline to analyze open single-cell datasets in **systemic sclerosis (SSc/CREST syndrome)** and prioritize therapeutic targets.
 
 ## Features
@@ -60,3 +62,20 @@ python src/de_analysis.py
 - scvi-tools: 1.3.3
 - anndata: 0.11.4
 - gseapy: 1.1.10
+
+**Citation**
+
+Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration* (v0.1.5). Zenodo. https://doi.org/10.5281/zenodo.17156333
+
+## Provenance & reproducibility
+
+- **Repository:** `glenritschel/scleroderma-scvi` (tag: `v0.1.5`)
+- **AnnData used:** `data/processed/ssc_skin_scvi_annot_curated.h5ad`
+- **DE table:** `results/tables/rank_genes_groups_leiden_wilcoxon.csv`
+- **LINCS libraries:** GO_Biological_Process_2023; Reactome_2022; KEGG_2021_Human; LINCS_L1000_Chem_Pert_up; LINCS_L1000_Chem_Pert_down  
+- **Environment:** Python 3.10; scanpy; scvi-tools; pandas; gseapy  
+  (full specs in `results/metadata/pip_freeze.txt` and `environment.yml`)
+- **Seeds:** NumPy / PyTorch / scvi-tools fixed (see notebook 07 header)
+- **Generated:** YYYY-MM-DD
+
+_Reproduce:_ run notebooks `06_results.ipynb` → `07_state_signatures_and_drugs.ipynb` → `08_validation_and_robustness.ipynb`.
