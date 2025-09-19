@@ -4,18 +4,15 @@ title: "Single-cell atlas of systemic sclerosis skin reveals therapeutic targets
 authors:
   - family-names: "Ritschel"
     given-names: "Glen C."
-    # orcid: "https://orcid.org/0000-0000-0000-0000"  # add later if you have a standard ORCID
-version: "0.1.4"                 # match your Git tag (v0.1.4 → 0.1.4)
+version: "0.1.5"
 date-released: "2025-09-18"
+doi: "10.5281/zenodo.17156333"
 url: "https://github.com/glenritschel/scleroderma-scvi"
-repository-code: "https://github.com/glenritschel/scleroderma-scvi"
+license: "MIT"
 keywords:
   - systemic sclerosis
   - CREST syndrome
-  - autoimmune disease
   - single-cell RNA-seq
   - scvi-tools
   - Open Targets
   - AI-augmented research
-license: "MIT"
-# doi: "10.5281/zenodo.xxxxxxx"    # add AFTER Zenodo publishes and mints it
