@@ -20,7 +20,7 @@ This figure summarizes our LINCS reversal analysis for scleroderma skin single-c
 <!-- PROVENANCE:BEGIN -->
 ## Provenance & reproducibility
 
-- **Git:** tag `v0.1.6`, commit `4be8136`
+- **Git:** tag `v0.1.7`, commit `4be8136`
 - **AnnData used:** `ssc_skin_scvi.h5ad`
 - **DE table:** `results/tables/rank_genes_groups_leiden_wilcoxon.csv`
 - **LINCS libraries:** GO_Biological_Process_2023, Reactome_2022, KEGG_2021_Human, LINCS_L1000_Chem_Pert_up, LINCS_L1000_Chem_Pert_down

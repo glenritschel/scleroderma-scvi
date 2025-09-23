@@ -65,11 +65,11 @@ python src/de_analysis.py
 
 **Citation**
 
-Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration* (v0.1.6). Zenodo. https://doi.org/10.5281/zenodo.17156333
+Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration* (v0.1.7). Zenodo. https://doi.org/10.5281/zenodo.17156333
 
 ## Provenance & reproducibility
 
-- **Repository:** `glenritschel/scleroderma-scvi` (tag: `v0.1.6`)
+- **Repository:** `glenritschel/scleroderma-scvi` (tag: `v0.1.7`)
 - **AnnData used:** `data/processed/ssc_skin_scvi_annot_curated.h5ad`
 - **DE table:** `results/tables/rank_genes_groups_leiden_wilcoxon.csv`
 - **LINCS libraries:** GO_Biological_Process_2023; Reactome_2022; KEGG_2021_Human; LINCS_L1000_Chem_Pert_up; LINCS_L1000_Chem_Pert_down  

@@ -1,6 +1,6 @@
 {
   "timestamp": "2025-09-22 21:16:47",
-  "repo_tag": "v0.1.6",
+  "repo_tag": "v0.1.7",
   "git_commit": "4be8136",
   "python": "3.10.18",
   "scanpy": "1.11.4",
