@@ -1,42 +1,69 @@
-CONDA_ENV ?= ssc-scvi
-PY ?= python
-GEO ?= GSE138669
-VERSION ?= 1.0.0
-TAG ?= v$(VERSION)
-GITHUB_REPO ?= YOURUSERNAME/scleroderma-scvi
+PY=python
+CFG=conf/config.yaml
 
-.PHONY: help env data qc scvi de targets all clean release zip
+.PHONY: all prep qc map umap de enrichr reversal shortlist provenance bundle clean
 
-help:
-	@echo "Targets: env | data | qc | scvi | de | targets | all | release | clean"
+all: prep qc map umap de enrichr reversal shortlist provenance
 
-env:
-	conda env update -f environment.yml -n $(CONDA_ENV) || conda env create -f environment.yml
-
-data:
-	$(PY) src/data_download.py --geo $(GEO)
+prep:
+	@echo ">> Preprocess / modeling"
+	$(PY) src/preprocess.py --config $(CFG) || true
+	$(PY) src/modeling.py   --config $(CFG) || true
 
 qc:
-	$(PY) src/preprocess.py
+	@echo ">> Verify QC & cluster medians"
+	$(PY) src/verify_qc.py  --config $(CFG) || true
 
-scvi:
-	$(PY) src/modeling.py
+map:
+	@echo ">> Attach .raw / symbol patch (idempotent)"
+	$(PY) src/patch_symbols.py --config $(CFG) || true
+
+umap:
+	@echo ">> Neighbors/UMAP on X_scvi"
+	$(PY) src/modeling.py --config $(CFG) --umap || true
 
 de:
-	$(PY) src/de_analysis.py
+	@echo ">> DE (wilcoxon)"
+	$(PY) src/de_analysis.py --config $(CFG) --out $(shell yq '.paths.de_csv' $(CFG) 2>/dev/null || echo results/tables/rank_genes_groups_leiden_wilcoxon.csv) || true
 
-targets:
-	$(PY) src/open_targets.py
+enrichr:
+	@echo ">> Summarize Enrichr outputs (GO/Reactome/Drug)"
+	$(PY) src/open_targets.py --config $(CFG) || true
 
-all: qc scvi de targets
+reversal:
+	@echo ">> Build/refresh reversal tables from Enrichr drug outputs"
+	$(PY) src/finalize_metrics.py --config $(CFG) --write-reversal || true
 
-zip:
-	@rm -f scleroderma-scvi-$(VERSION).zip
-	zip -r scleroderma-scvi-$(VERSION).zip . -x "*.git*"
+shortlist:
+	@echo ">> Day-7 scoring snapshot"
+	$(PY) src/finalize_metrics.py --config $(CFG) --write-shortlist || true
 
-release: zip
-	@git add -A
-	@git commit -m "Release $(TAG)" || true
-	@git tag -a $(TAG) -m "Release $(TAG)" || true
-	@git push --follow-tags
-	@echo "Create GitHub release for $(TAG) (or use gh release create)"
+provenance:
+	@echo ">> Save env + provenance"
+	@mkdir -p results/metadata
+	conda env export > results/metadata/environment.yml || true
+	pip freeze > results/metadata/pip_freeze.txt || true
+	$(PY) - <<'PY'
+import json, os, time, subprocess
+def sh(cmd): 
+  try: return subprocess.check_output(cmd, shell=True, text=True).strip()
+  except: return "NA"
+prov = {
+ "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+ "git_sha": sh("git rev-parse HEAD"),
+ "inputs": ["data/processed/ssc_skin_qc.h5ad","data/processed/ssc_skin_scvi.h5ad"],
+ "outputs": ["data/processed/ssc_skin_scvi.withraw_umap.h5ad","results/tables/rank_genes_groups_leiden_wilcoxon.csv","results/shortlist_day7.csv"],
+ "env": {"conda_env": "results/metadata/environment.yml","pip_freeze": "results/metadata/pip_freeze.txt"},
+ "seeds": {"numpy": 0, "torch": 0, "scvi": 0}
+}
+open("results/metadata/provenance.json","w").write(json.dumps(prov, indent=2))
+open("results/metadata/session.txt","w").write(f"{prov['generated_at']} | git {prov['git_sha']}\n")
+PY
+
+bundle:
+	@echo ">> Build/share bundle (optional)"
+	$(PY) src/finalize_metrics.py --config $(CFG) --build-bundle || true
+
+clean:
+	@echo ">> Non-destructive: remove transient CSVs/images (keeps final_bundle/)"
+	@rm -f results/shortlist_day7.csv

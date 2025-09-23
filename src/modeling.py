@@ -6,6 +6,8 @@ import scanpy as sc
 import scvi
 import scipy.sparse as sp
 
+DO_QC = False  # set True later if you want to attach .raw + recompute QC in this script
+
 PROC = Path("data/processed")
 
 def _symbol_series(a: sc.AnnData) -> pd.Series:
@@ -99,6 +101,13 @@ def train_scvi(
 ):
     in_path = PROC / input_h5ad
     ad_full = sc.read_h5ad(in_path)
+    # after: ad_full = sc.read_h5ad(in_path)
+    assert "gene_symbol" in ad_full.var.columns, "gene_symbol missing; re-run preprocess.py after applying hardening patch."
+    if "mt" not in ad_full.var.columns or "ribo" not in ad_full.var.columns:
+        names_u = ad_full.var["gene_symbol"].astype(str).str.upper()
+        ad_full.var["mt"]   = names_u.str.startswith(("MT-","MT.","MT_"))
+        ad_full.var["ribo"] = names_u.str.startswith(("RPS","RPL"))
+
     print(f"[info] loaded {in_path}: {ad_full.shape}")
     print(f"[info] layers={list(getattr(ad_full, 'layers', {}).keys())}, raw={'yes' if ad_full.raw is not None else 'no'}")
     assert "counts" in ad_full.layers, "layers['counts'] is required (create it in preprocess.py before normalize/log)."
@@ -119,22 +128,29 @@ def train_scvi(
     )
     model = scvi.model.SCVI(ad, n_latent=n_latent)
     model.train(max_epochs=max_epochs)
-    ad.obsm["X_scvi"] = model.get_latent_representation()
+    ad.obsm["X_scvi"] = model.get_latent_representation().astype("float32")
 
-    # Neighbors / UMAP / Leiden
-    sc.pp.neighbors(ad, use_rep="X_scvi")
-    sc.tl.umap(ad)
-    sc.tl.leiden(ad, resolution=leiden_resolution)
+    # ---- free heavy stuff before building graph ----
+    model = None
+    import gc; gc.collect()
 
-    # Attach full-gene counts snapshot, then finalize QC in-place
-    _attach_full_gene_counts_raw(ad, ad_full)
-    _finalize_counts_qc(ad)
+    # drop raw & counts on the HVG object to cut memory footprint
+    try:
+        ad.raw = None
+    except Exception:
+        pass
+    if "counts" in ad.layers:
+        ad.layers.pop("counts", None)
 
-    # (optional) keep a counts layer projected to HVGs on the final object
-    if "counts" not in ad.layers:
-        # Project counts from the full object onto HVGs if needed
-        ad.layers["counts"] = ad_full[:, hvgs].layers["counts"].copy()
+    # CRITICAL: drop the big full-gene object before neighbors
+    del ad_full
+    gc.collect()
 
+    # Lean KNN + Leiden (skip UMAP for now to save RAM)
+    sc.pp.neighbors(ad, use_rep="X_scvi", n_neighbors=10, method="umap")
+    sc.tl.leiden(ad, resolution=leiden_resolution, flavor="igraph", directed=False)
+
+    # Write the lightweight result
     out = PROC / f"{out_basename}.h5ad"
     ad.write(out, compression="gzip")
     print(f"[done] wrote {out}")

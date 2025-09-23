@@ -1,6 +1,6 @@
 # Drug-repurposing overview
 
-*Updated:* 2025-09-18
+*Updated:* 2025-09-22
 
 This figure summarizes our LINCS reversal analysis for scleroderma skin single-cell states.
 
@@ -20,12 +20,12 @@ This figure summarizes our LINCS reversal analysis for scleroderma skin single-c
 <!-- PROVENANCE:BEGIN -->
 ## Provenance & reproducibility
 
-- **Git:** tag `v0.1.5`, commit `03fdc2f`
-- **AnnData used:** `n/a`
+- **Git:** tag `v0.1.6`, commit `4be8136`
+- **AnnData used:** `ssc_skin_scvi.h5ad`
 - **DE table:** `results/tables/rank_genes_groups_leiden_wilcoxon.csv`
 - **LINCS libraries:** GO_Biological_Process_2023, Reactome_2022, KEGG_2021_Human, LINCS_L1000_Chem_Pert_up, LINCS_L1000_Chem_Pert_down
 - **Environment:** Python 3.10.18; scanpy 1.11.4; scvi-tools 1.3.3; pandas 2.3.2; gseapy 1.1.10
-- **Generated:** 2025-09-18 22:00:10
+- **Generated:** 2025-09-22 21:16:47
 
 _Reproduce:_ run notebooks `06_results` → `07_state_signatures_and_drugs` → `08_validation_and_robustness`.
 <!-- PROVENANCE:END -->

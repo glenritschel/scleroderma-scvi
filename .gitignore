@@ -68,3 +68,7 @@ data/processed/*.h5ad
 results/ssc_drugrepurposing_quick.zip
 *.zip
 !results/drug_repurposing/final_bundle.zip
+
+archive/
+results/**/*.zip
+*.ipynb_checkpoints/

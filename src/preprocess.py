@@ -1,170 +1,245 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from pathlib import Path
-import re
 import scanpy as sc
-import anndata as ad
-
+import pandas as pd
+import numpy as np
+import gc, anndata as an
+from scipy import sparse
 import warnings
-warnings.filterwarnings(
-    "ignore",
-    category=UserWarning,
-    message=".*Variable names are not unique.*"
-)
+import re
 
-RAW = Path("data/raw")
-PROC = Path("data/processed")
-PROC.mkdir(parents=True, exist_ok=True)
+# robust sparse import (handles environments where one import path fails)
+try:
+    import scipy.sparse as sp
+except Exception:               # very defensive, but safe
+    from scipy import sparse as sp
 
-###############################################################################
-def _sample_name_from_path(p: Path) -> str:
-    m = re.match(r"(GSM\d+)", p.stem)
-    return m.group(1) if m else p.stem
+# silence specific, known-benign messages
+warnings.filterwarnings("ignore", message=".*observed=False is deprecated.*")
+warnings.filterwarnings("ignore", message=".*Variable names are not unique.*")
+warnings.filterwarnings("ignore", message=".*Observation names are not unique.*")
 
-###############################################################################
-def load_any_merge(path: Path) -> ad.AnnData:
-    import anndata as ad
-    h5s = sorted(path.glob("**/*.h5"))
-    if h5s:
-        adatas = []
-        batch_names = []
-        for p in h5s:
-            print(f"[info] loading 10x HDF5: {p}")
-            a = sc.read_10x_h5(p)
+RAW_DIR   = Path("data/raw/GSE138669")
+PROC_DIR  = Path("data/processed")
+PER_DIR   = PROC_DIR / "per_sample"
+PROC_DIR.mkdir(parents=True, exist_ok=True)
+PER_DIR.mkdir(parents=True, exist_ok=True)
 
-            # Prefer stable gene IDs as var_names if present
-            if "gene_ids" in a.var.columns:
-                a.var["gene_symbol"] = a.var_names  # keep symbols
-                a.var_names = a.var["gene_ids"].astype(str)
+# --- helpers for robust symbols/QC ---
+def _strip_ens_version(idx):
+    return pd.Index(idx).astype(str).str.replace(r"\.\d+$", "", regex=True)
 
-            # Ensure uniqueness
-            a.var_names_make_unique()
-            a.obs_names_make_unique()
-
-            # Track sample name
-            s = _sample_name_from_path(p)
-            a.obs["sample"] = s
-            adatas.append(a)
-            batch_names.append(s)
-
-        # Concatenate safely (prefix obs names by sample, keep outer union of genes)
-        merged = ad.concat(
-            adatas,
-            axis=0,
-            join="outer",
-            label="sample",
-            keys=batch_names,
-            index_unique="-",   # make obs_names like <barcode>-<sample>
-            merge="same"
-        )
-        merged.var_names_make_unique()
-        merged.obs_names_make_unique()
-        return merged
-
-    # ---- SAME LOGIC for .h5ad and MTX as before, but apply the same hygiene ----
-    h5ads = sorted(path.glob("**/*.h5ad"))
-    if len(h5ads) > 1:
-        adatas, batch_names = [], []
-        for p in h5ads:
-            a = sc.read_h5ad(p)
-            if "gene_ids" in a.var.columns:
-                a.var["gene_symbol"] = a.var_names
-                a.var_names = a.var["gene_ids"].astype(str)
-            a.var_names_make_unique()
-            a.obs_names_make_unique()
-            s = _sample_name_from_path(p)
-            a.obs["sample"] = s
-            adatas.append(a)
-            batch_names.append(s)
-        return ad.concat(adatas, axis=0, join="outer", label="sample", keys=batch_names, index_unique="-", merge="same")
-    elif len(h5ads) == 1:
-        a = sc.read_h5ad(h5ads[0])
-        if "gene_ids" in a.var.columns:
-            a.var["gene_symbol"] = a.var_names
-            a.var_names = a.var["gene_ids"].astype(str)
-        a.var_names_make_unique()
-        a.obs_names_make_unique()
-        return a
-
-    mtx_dirs = [p for p in path.glob("**/*") if p.is_dir() and (p/"matrix.mtx").exists()]
-    if mtx_dirs:
-        a = sc.read_10x_mtx(mtx_dirs[0], var_names="gene_symbols", cache=True)
-        # For MTX we only have symbols; just make unique
-        a.var_names_make_unique()
-        a.obs_names_make_unique()
-        return a
-
-    raise FileNotFoundError("No supported data found. Place .h5, .h5ad, or a 10x mtx folder under data/raw/.")
-
-###############################################################################
-def _symbol_series(adata):
+def _build_id_to_symbol_from_per_sample(per_dir: Path) -> pd.Series:
     """
-    Prefer gene symbols if available; fall back to var_names.
-    Works whether var_names are gene_ids (e.g., Ensembl) or symbols.
+    Build a map: Ensembl(without version) -> gene_symbol
+    by scanning the per-sample *_qc.h5ad files.
     """
-    if "gene_symbol" in adata.var.columns:
-        return adata.var["gene_symbol"].astype(str)
-    return adata.var_names.astype(str)
+    maps = []
+    for fp in sorted(per_dir.glob("*_qc.h5ad")):
+        a = sc.read_h5ad(fp, backed=None)
+        ens = _strip_ens_version(a.var_names)
+        sym = (a.var.get("gene_symbol", a.var_names)).astype(str)
+        m = pd.DataFrame({"ens": ens, "sym": sym})
+        # keep real symbols first: drop rows where sym still looks like ENSG*
+        m["is_symbol"] = ~m["sym"].str.upper().str.startswith("ENSG")
+        m = m.sort_values("is_symbol", ascending=False).drop_duplicates("ens")
+        maps.append(m[["ens","sym"]])
+        del a
+    if not maps:
+        return pd.Series(dtype=str)
+    cat = pd.concat(maps, axis=0, ignore_index=True).drop_duplicates("ens")
+    return cat.set_index("ens")["sym"]
 
-###############################################################################
-def basic_qc(adata, min_genes=200, max_mito=0.10, min_cells_per_gene=3):
-# delete below
-#    adata.var["mt"] = adata.var_names.str.upper().str.startswith(("MT-", "MT."))
-#    sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], percent_top=None, inplace=True)
+def _symbol_series(var, fallback_index):
+    for c in ("gene_symbol","gene_symbols","symbol","SYMBOL","gene_name","features","gene_names"):
+        if c in var.columns:
+            return var[c].astype(str)
+    return pd.Index(fallback_index).astype(str)
 
-    # Flag mito using SYMBOLS if present (robust to Ensembl var_names)
-    names = _symbol_series(adata)
-    adata.var["mt"] = names.str.upper().str.startswith(("MT-", "MT.", "MT_"))
+def annotate_and_qc(ad):
+    # Keep raw counts
+    if "counts" not in ad.layers:
+        ad.layers["counts"] = ad.X.copy()
 
-    # Compute QC on raw counts (X is still counts at this stage)
-    sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], percent_top=None, inplace=True)
+    # Gene symbols
+    if "gene_symbol" not in ad.var.columns:
+        ad.var["gene_symbol"] = _symbol_series(ad.var, ad.var_names)
 
-    keep = (adata.obs["n_genes_by_counts"] >= min_genes) & (adata.obs["pct_counts_mt"] <= max_mito * 100)
-    adata = adata[keep].copy()
-    sc.pp.filter_genes(adata, min_cells=min_cells_per_gene)
-    return adata
+    # Mito/ribo flags + QC
+    symu = ad.var["gene_symbol"].astype(str).str.upper()
+    ad.var["mt"]   = symu.str.startswith(("MT-","MT.","MT_"))
+    ad.var["ribo"] = symu.str.startswith(("RPS","RPL"))
+    sc.pp.calculate_qc_metrics(ad, qc_vars=["mt","ribo"], layer="counts", inplace=True)
 
-###############################################################################
-def run_qc(output="ssc_skin_qc.h5ad"):
-    adata = load_any_merge(RAW)
-    adata.var_names_make_unique()
-    adata.obs_names_make_unique()
-    print(f"[info] raw shape: {adata.shape}")
+def load_one_10x(h5_path: Path, sample_id: str) -> sc.AnnData:
+    ad = sc.read_10x_h5(str(h5_path))
 
-    # Basic QC (assumes this flags mito via symbols & filters on counts)
-    adata = basic_qc(adata)
-    print(f"[info] post-QC (pre-freeze) shape: {adata.shape}")
+    # stable IDs if available
+    if "gene_ids" in ad.var.columns:
+        ad.var_names = ad.var["gene_ids"].astype(str)
+    else:
+        ad.var_names = ad.var_names.astype(str)
+    ad.var_names_make_unique()
 
-    # Freeze counts + raw BEFORE any transform
-    adata.layers["counts"] = adata.X.copy()        # preserve raw counts
-    adata.raw = adata.copy()                       # snapshot with all genes (pre-HVG)
+    # sparse + dtype
+    ad.X = ad.X.tocsr()
+    ad.layers["counts"] = ad.X.copy()
+    ad.X = ad.X.astype(np.float32)
 
-    # HVGs from counts (Seurat v3 expects counts)
-    sc.pp.highly_variable_genes(
-        adata,
-        flavor="seurat_v3",
-        n_top_genes=4000,
+    # QC metrics
+    annotate_and_qc(ad)
+
+    # ensure gene_symbol
+    if "gene_symbol" in ad.var.columns:
+        ad.var["gene_symbol"] = ad.var["gene_symbol"].astype(str)
+    elif "gene_names" in ad.var.columns:
+        ad.var["gene_symbol"] = ad.var["gene_names"].astype(str)
+    else:
+        for c in ("features","feature_name","SYMBOL","symbol","gene_name"):
+            if c in ad.var.columns:
+                ad.var["gene_symbol"] = ad.var[c].astype(str)
+                break
+        else:
+            ad.var["gene_symbol"] = ad.var_names.astype(str)
+
+    # filter empty/near-empty barcodes
+    keep = (ad.obs["total_counts"] > 500) & (ad.obs["n_genes_by_counts"] > 200)
+    if keep.sum() == 0:
+        keep = ad.obs["total_counts"] > 0
+    ad = ad[keep].copy()
+
+    # unique obs names, sample tag
+    ad.obs_names = sample_id + "_" + ad.obs_names.astype(str)
+    ad.obs_names_make_unique()
+    ad.obs["sample"] = sample_id
+    return ad
+
+def main():
+    files = sorted(RAW_DIR.glob("GSM*_*feature_bc_matrix.h5"))
+    if not files:
+        raise FileNotFoundError(f"No 10x HDF5 files under {RAW_DIR} (expected GSM*_*feature_bc_matrix.h5)")
+
+    # per-sample processing, save & free
+    for fp in files:
+        sample_id = fp.stem.split("_")[0]
+        print(f"[info] reading {fp.name} → sample {sample_id}")
+        ad = load_one_10x(fp, sample_id)
+
+        # (optional) light per-sample prune
+        sc.pp.filter_genes(ad, min_cells=3)
+
+        outp = PER_DIR / f"{sample_id}_qc.h5ad"
+        ad.write(outp, compression="gzip")
+        print(f"[saved] {outp}  | cells: {ad.n_obs:,} genes: {ad.n_vars:,}")
+        del ad; gc.collect()
+
+    # streamed concat from disk
+    print("[info] concatenating per-sample objects…")
+    ad_all = None
+    for fp in sorted(PER_DIR.glob("*_qc.h5ad")):
+        a = sc.read_h5ad(fp, backed=None)
+        a.X = a.X.tocsr()
+        if ad_all is None:
+            ad_all = a
+        else:
+            ad_all = an.concat(
+                [ad_all, a],
+                join="outer",
+                label="sample",
+                index_unique="-",
+                merge="unique",
+                fill_value=0,
+            )
+        del a; gc.collect()
+
+    # ---- POST-CONCAT HARDENING ----
+    ad_all.obs_names_make_unique()
+    ad_all.var_names_make_unique()
+
+    # Ensure CSR and counts layer
+    if not sp.issparse(ad_all.X):
+        ad_all.X = sp.csr_matrix(ad_all.X)
+    if "counts" not in ad_all.layers:
+        ad_all.layers["counts"] = ad_all.X.copy()
+
+    # Rebuild gene_symbol from per-sample files if needed
+    id2sym = _build_id_to_symbol_from_per_sample(PER_DIR)
+
+    ens_full = _strip_ens_version(ad_all.var_names)
+    gene_symbol = id2sym.reindex(ens_full).astype(object)
+
+    # Fallbacks: keep any existing gene_symbol; otherwise var_names
+    if "gene_symbol" in ad_all.var.columns:
+        existing = ad_all.var["gene_symbol"].astype(str)
+    else:
+        existing = ad_all.var_names.astype(str)
+
+    mask = gene_symbol.isna() | (gene_symbol.astype(str) == "") | (gene_symbol.str.upper().str.startswith("ENSG"))
+    gene_symbol[mask] = existing[mask].values
+
+    ad_all.var["gene_symbol"] = gene_symbol.astype(str)
+    ad_all.var["gene_symbol_upper"] = ad_all.var["gene_symbol"].str.upper()
+
+    # Robust mito/ribo flags from symbol column
+    symu = ad_all.var["gene_symbol_upper"]
+    ad_all.var["mt"]   = symu.str.startswith(("MT-","MT.","MT_"))
+    ad_all.var["ribo"] = symu.str.startswith(("RPS","RPL"))
+
+    # Counts-based QC (ensures pct_counts_mt / pct_counts_ribo exist)
+    sc.pp.calculate_qc_metrics(
+        ad_all,
+        qc_vars=["mt","ribo"],
         layer="counts",
-        batch_key="sample",   # remove if you don't have obs["sample"]
+        percent_top=None,
+        inplace=True,
     )
 
-    # Now normalize/log in X for downstream analyses
-    sc.pp.normalize_total(adata, target_sum=1e4)
-    sc.pp.log1p(adata)
+    # --- repair gene_symbol on merged object using one per-sample mapping ---
+    per_files = sorted(PER_DIR.glob("*_qc.h5ad"))
+    assert per_files, "No per-sample QC files found in data/processed/per_sample/"
 
-    # Subset to HVGs
-    adata = adata[:, adata.var.highly_variable].copy()
+    a0 = sc.read_h5ad(per_files[0])
 
-    # Sanity checks
-    assert "counts" in adata.layers
-    assert adata.raw is not None
-    assert "highly_variable" in adata.var
+    # Build a robust mapping from gene IDs -> symbols (strip version suffixes like .7)
+    def strip_ver(s: pd.Series | pd.Index) -> pd.Series:
+        return pd.Index(s.astype(str)).str.replace(r"\.\d+$", "", regex=True)
 
-    print(f"[info] post-QC (final) shape: {adata.shape}")
+    # map from first per-sample object
+    id_keys_src  = strip_ver(a0.var_names)
+    id_keys_full = strip_ver(ad_all.var_names)
 
-    out = PROC / output
-    adata.write(out, compression="gzip")
-    print(f"[done] wrote {out}")
+    # if there are duplicate Ensembl IDs, keep the first symbol
+    map_sym = (
+        pd.Series(a0.var["gene_symbol"].astype(str).values, index=id_keys_src)
+        .groupby(level=0)
+        .first()
+    )
 
-###############################################################################
+    # mapped symbols for the merged object
+    mapped   = id_keys_full.to_series(index=ad_all.var.index).map(map_sym)   # Series, not Index
+
+    # Fallback MUST be a Series aligned to ad_all.var.index (not an Index)
+    fallback = pd.Series(ad_all.var_names.astype(str), index=ad_all.var.index)
+
+    # Final gene_symbol
+    ad_all.var["gene_symbol"] = mapped.combine_first(fallback).astype(str)
+
+    print("NaNs in gene_symbol:", int(ad_all.var["gene_symbol"].isna().sum()))
+
+
+    # Now set QC flags
+    symu = ad_all.var["gene_symbol"].astype(str).str.upper()
+    ad_all.var["mt"]   = symu.str.startswith(("MT-","MT.","MT_"))
+    ad_all.var["ribo"] = symu.str.startswith(("RPS","RPL"))
+
+    print("NaN gene_symbol fraction:", ad_all.var["gene_symbol"].isna().mean())
+
+    # Save combined QC object
+    combined_out = PROC_DIR / "ssc_skin_qc.h5ad"
+    ad_all.write(combined_out, compression="gzip")
+    print(f"[saved] {combined_out}  | cells: {ad_all.n_obs:,} genes: {ad_all.n_vars:,}")
+
 if __name__ == "__main__":
-    run_qc()
+    main()

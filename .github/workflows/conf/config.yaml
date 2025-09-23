@@ -1,0 +1,25 @@
+paths:
+  scvi: data/processed/ssc_skin_scvi.h5ad
+  full: data/processed/ssc_skin_qc.h5ad
+  withraw: data/processed/ssc_skin_scvi.withraw.h5ad
+  withraw_umap: data/processed/ssc_skin_scvi.withraw_umap.h5ad
+
+  de_csv: results/tables/rank_genes_groups_leiden_wilcoxon.csv   # canonical name
+  de_csv_alt: results/tables/de_leiden_wilcoxon.csv              # legacy (read if exists)
+
+  enrichr_glob: results/drug_repurposing/leiden_*/up/enrichr_*.csv
+  reversal_like: results/drug_repurposing/lincs_reversal_top15_by_cluster.csv
+  shortlist_day7: results/shortlist_day7.csv
+
+qc:
+  mito_col: pct_counts_mt
+  ribo_col: pct_counts_ribo
+  cluster: leiden
+
+labels:
+  fibro: ["0","1","8","12","18"]
+  ker:   ["5","7","9"]
+
+targets:
+  pd0325901_ensembl: ["ENSG00000169032","ENSG00000126934"]   # MAP2K1/2
+  dasatinib_ensembl: ["ENSG00000197122","ENSG00000097007"]   # SRC, ABL1

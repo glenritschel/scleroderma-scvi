@@ -1,0 +1,47 @@
+name: Update Zenodo DOI in docs
+on:
+  release:
+    types: [published]
+jobs:
+  update-doi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get Zenodo record for this tag
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}   # add in repo secrets
+          TAG: ${{ github.event.release.tag_name }}   # e.g., v0.1.6
+        run: |
+          python - <<'PY'
+import os, json, re, subprocess, sys, urllib.request
+tag = os.environ["TAG"]
+# Replace with your Zenodo CONCEPT DOI or deposition ID lookup as needed:
+CONCEPT = "10.5281/zenodo.17156327"
+api = f"https://zenodo.org/api/records/?q=conceptdoi:{CONCEPT}+AND+metadata.version:{tag}"
+with urllib.request.urlopen(api) as r:
+    data = json.load(r)
+hits = data.get("hits", {}).get("hits", [])
+if not hits:
+    print("No Zenodo record found yet; exiting 78 to mark neutral.")
+    sys.exit(78)  # neutral (doesn't fail workflow)
+doi = hits[0]["doi"]
+# Patch CITATION.cff and README.md
+def sed(path, pattern, repl):
+    text = open(path).read()
+    open(path, "w").write(re.sub(pattern, repl, text, flags=re.M))
+sed("CITATION.cff", r"(?ms)(identifiers:\s*(?:-.*\n)*)$", r"\1- type: doi\n  value: \""+doi+"\"\n")
+sed("README.md", r"(DOI:\s*)(.+)$", r"\1"+doi)
+subprocess.check_call(["git","config","user.name","doi-bot"])
+subprocess.check_call(["git","config","user.email","doi-bot@users.noreply.github.com"])
+subprocess.check_call(["git","checkout","-b","update-doi-"+tag])
+subprocess.check_call(["git","add","CITATION.cff","README.md"])
+subprocess.check_call(["git","commit","-m",f"Add Zenodo DOI for {tag}: {doi}"])
+subprocess.check_call(["git","push","origin","HEAD"])
+print("::notice ::Pushed branch with DOI update.")
+PY
+      - name: Open PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Add Zenodo DOI to CITATION/README for ${{ github.event.release.tag_name }}"
+          branch: update-doi-${{ github.event.release.tag_name }}
+          body: "This PR adds the minted Zenodo DOI to CITATION.cff and README."

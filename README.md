@@ -65,7 +65,7 @@ python src/de_analysis.py
 
 **Citation**
 
-Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration* (v0.1.5). Zenodo. https://doi.org/10.5281/zenodo.17156333
+Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration* (v0.1.6). Zenodo. https://doi.org/10.5281/zenodo.17156333
 
 ## Provenance & reproducibility
 
