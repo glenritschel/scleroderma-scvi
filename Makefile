@@ -1,7 +1,7 @@
 PY=python
 CFG=conf/config.yaml
 
-.PHONY: all prep qc map umap de enrichr reversal shortlist provenance bundle clean
+.PHONY: all prep qc map umap de enrichr reversal shortlist provenance bundle clean tidy
 
 all: prep qc map umap de enrichr reversal shortlist provenance
 
@@ -67,3 +67,6 @@ bundle:
 clean:
 	@echo ">> Non-destructive: remove transient CSVs/images (keeps final_bundle/)"
 	@rm -f results/shortlist_day7.csv
+
+tidy:
+	scripts/cleanup_repo.sh

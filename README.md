@@ -69,7 +69,7 @@ Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals th
 
 ## Provenance & reproducibility
 
-- **Repository:** `glenritschel/scleroderma-scvi` (tag: `v0.1.5`)
+- **Repository:** `glenritschel/scleroderma-scvi` (tag: `v0.1.6`)
 - **AnnData used:** `data/processed/ssc_skin_scvi_annot_curated.h5ad`
 - **DE table:** `results/tables/rank_genes_groups_leiden_wilcoxon.csv`
 - **LINCS libraries:** GO_Biological_Process_2023; Reactome_2022; KEGG_2021_Human; LINCS_L1000_Chem_Pert_up; LINCS_L1000_Chem_Pert_down  

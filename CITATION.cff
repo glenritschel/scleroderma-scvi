@@ -4,7 +4,7 @@ title: "Single-cell atlas of systemic sclerosis skin reveals therapeutic targets
 authors:
   - family-names: "Ritschel"
     given-names: "Glen C."
-version: "0.1.5"
+version: "0.1.6"
 date-released: "2025-09-18"
 doi: "10.5281/zenodo.17156333"
 url: "https://github.com/glenritschel/scleroderma-scvi"
