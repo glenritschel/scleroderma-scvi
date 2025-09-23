@@ -16,6 +16,9 @@ permissions:
 jobs:
   update-doi:
     runs-on: ubuntu-latest
+    # Public concept DOI is fine as a repo variable or fallback literal
+    env:
+      CONCEPT: ${{ secrets.ZENODO_CONCEPT_DOI || vars.ZENODO_CONCEPT_DOI || '10.5281/zenodo.17156327' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,11 +26,14 @@ jobs:
         with:
           python-version: "3.x"
 
-      # Resolve the tag from either workflow_dispatch input or release payload
+      # Resolve TAG without GitHub expressions inside the shell
       - name: Resolve tag
         id: ctx
+        env:
+          TAG_INPUT: ${{ github.event.inputs.tag }}
+          TAG_RELEASE: ${{ github.event.release.tag_name }}
         run: |
-          TAG="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          TAG="${TAG_INPUT:-$TAG_RELEASE}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved TAG=$TAG"
 
@@ -35,7 +41,6 @@ jobs:
       - name: Fetch Zenodo DOI
         id: fetch
         env:
-          CONCEPT: ${{ secrets.ZENODO_CONCEPT_DOI }}
           TAG: ${{ steps.ctx.outputs.tag }}
         run: |
           python - <<'PY'
@@ -63,7 +68,6 @@ if concept and tag:
             print(f"Zenodo record not found yet (attempt {i+1}/{tries}); sleeping {sleep}s...")
             time.sleep(sleep)
         return None
-
     rec = fetch(concept, tag)
     if rec:
         doi = rec.get("doi") or rec.get("metadata",{}).get("prereserve_doi",{}).get("doi","")
@@ -71,9 +75,9 @@ if concept and tag:
             print("Found DOI:", doi)
             found = True
         else:
-            print("::notice ::DOI field missing in record; skipping.")
+            print("::notice ::DOI field missing; skipping.")
 else:
-    print("::notice ::Missing concept DOI secret or TAG; skipping.")
+    print("::notice ::Missing CONCEPT or TAG; skipping.")
 
 with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
     fh.write(f"found={'true' if found else 'false'}\n")
@@ -91,7 +95,7 @@ PY
 import os, re
 from pathlib import Path
 
-# Ensure PyYAML is available
+# Ensure PyYAML
 try:
     import yaml
 except ImportError:
@@ -136,3 +140,8 @@ PY
       - name: Create PR
         if: steps.fetch.outputs.found == 'true'
         uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Add Zenodo DOI to CITATION/README for ${{ steps.ctx.outputs.tag }}"
+          branch: update-doi-${{ steps.ctx.outputs.tag }}
+          commit-message: "Add Zenodo DOI for ${{ steps.ctx.outputs.tag }}"
+          body: "Adds the minted Zenodo DOI to CITATION.cff and README."
