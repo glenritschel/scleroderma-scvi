@@ -3,6 +3,11 @@ name: Update Zenodo DOI in docs
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to patch (e.g., v0.1.7)"
+        required: false
 
 permissions:
   contents: write
@@ -10,108 +15,80 @@ permissions:
 
 jobs:
   update-doi:
+    # only run for release or manual dispatch
+    if: ${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: Get Zenodo DOI and patch files
         env:
           ZENODO_CONCEPT_DOI: ${{ secrets.ZENODO_CONCEPT_DOI }}   # set this secret once
-          TAG: ${{ github.event.release.tag_name }}               # e.g., v0.1.6
+          TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
         run: |
           python - <<'PY'
 import os, sys, time, re, json, urllib.request
 from urllib.error import HTTPError
 from pathlib import Path
-
-# ensure PyYAML
 try:
     import yaml
 except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml"])
-    import yaml
+    import subprocess; subprocess.check_call([sys.executable,"-m","pip","install","pyyaml"]); import yaml
 
-TAG   = os.environ.get("TAG") or ""
-CONCEPT = os.environ.get("ZENODO_CONCEPT_DOI") or ""  # e.g. 10.5281/zenodo.17156327
-if not TAG or not CONCEPT:
-    print("Missing TAG or ZENODO_CONCEPT_DOI"); sys.exit(1)
+tag = os.environ.get("TAG")
+concept = os.environ.get("ZENODO_CONCEPT_DOI")
+if not tag or not concept:
+    print("Missing TAG or ZENODO_CONCEPT_DOI"); sys.exit(78)  # neutral
 
 def fetch_record(concept, tag, tries=10, sleep=20):
-    # Look for the version matching the GitHub tag
-    query = f"https://zenodo.org/api/records/?q=conceptdoi:{concept}+AND+metadata.version:{tag}"
+    q = f"https://zenodo.org/api/records/?q=conceptdoi:{concept}+AND+metadata.version:{tag}"
     for i in range(tries):
         try:
-            with urllib.request.urlopen(query) as r:
-                data = json.load(r)
-            hits = data.get("hits", {}).get("hits", [])
-            if hits:
+            with urllib.request.urlopen(q) as r: data = json.load(r)
+            hits = data.get("hits",{}).get("hits",[])
+            if hits: 
                 hits.sort(key=lambda h: h.get("updated",""), reverse=True)
                 return hits[0]
         except HTTPError as e:
-            if 500 <= e.code < 600:
-                pass
+            if 500 <= e.code < 600: pass
         print(f"Zenodo record not found yet (attempt {i+1}/{tries}); sleeping {sleep}s...")
         time.sleep(sleep)
     return None
 
-rec = fetch_record(CONCEPT, TAG)
+rec = fetch_record(concept, tag)
 if not rec:
-    print("No Zenodo record found yet; exiting 78 to mark neutral.")
-    sys.exit(78)  # neutral (not a failure)
+    print("No Zenodo record found yet; exiting neutral."); sys.exit(78)
 
-doi = rec.get("doi") or rec.get("metadata", {}).get("prereserve_doi", {}).get("doi")
+doi = rec.get("doi") or rec.get("metadata",{}).get("prereserve_doi",{}).get("doi")
 if not doi:
-    print("DOI missing in Zenodo record; exiting neutral.")
-    sys.exit(78)
-
+    print("DOI missing; exiting neutral."); sys.exit(78)
 print("Found DOI:", doi)
 
-# --- Patch CITATION.cff robustly ---
-cff_path = Path("CITATION.cff")
-if not cff_path.exists():
-    print("CITATION.cff not found; exiting 78 neutral.")
-    sys.exit(78)
+# Patch CITATION.cff (dedupe)
+cff_p = Path("CITATION.cff")
+if not cff_p.exists():
+    print("CITATION.cff not found; neutral."); sys.exit(78)
+cff = yaml.safe_load(cff_p.read_text()) or {}
+ids = [i for i in (cff.get("identifiers") or []) if isinstance(i, dict)]
+vals = {i.get("value") for i in ids}
+if doi not in vals: ids.append({"type":"doi","value":doi})
+cff["identifiers"] = ids
+cff_p.write_text(yaml.safe_dump(cff, sort_keys=False))
 
-with open(cff_path, "r", encoding="utf-8") as f:
-    cff = yaml.safe_load(f) or {}
-
-idents = cff.get("identifiers") or []
-# Deduplicate existing values
-seen = {i.get("value") for i in idents if isinstance(i, dict) and "value" in i}
-if doi not in seen:
-    idents.append({"type":"doi","value":doi})
-cff["identifiers"] = idents
-
-# Optionally ensure version/date match the tag (safe if already correct)
-cff.setdefault("version", TAG)
-from datetime import date
-cff.setdefault("date-released", date.today().isoformat())
-
-with open(cff_path, "w", encoding="utf-8") as f:
-    yaml.safe_dump(cff, f, sort_keys=False)
-
-# --- Patch README.md: replace or add DOI line ---
-readme = Path("README.md")
-text = readme.read_text(encoding="utf-8") if readme.exists() else "# README\n\n"
-if re.search(r"DOI:\s*10\.\d{4,9}/\S+", text):
-    text = re.sub(r"(DOI:\s*)10\.\d{4,9}/\S+", rf"\g<1>{doi}", text)
+# Patch README (replace or add)
+rd = Path("README.md")
+txt = rd.read_text() if rd.exists() else "# README\n\n"
+if re.search(r"DOI:\s*10\.\d{4,9}/\S+", txt):
+    txt = re.sub(r"(DOI:\s*)10\.\d{4,9}/\S+", rf"\g<1>{doi}", txt)
 else:
-    # Add a small citation block near the end
-    block = f"\n\n**Citation**: DOI: {doi}\n"
-    text += block
-readme.write_text(text, encoding="utf-8")
-
-print("Patched CITATION.cff and README.md with", doi)
+    txt += f"\n\n**Citation**: DOI: {doi}\n"
+rd.write_text(txt)
 PY
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "Add Zenodo DOI to CITATION/README for ${{
-            github.event.release.tag_name }}"
-          branch: update-doi-${{ github.event.release.tag_name }}
-          commit-message: "Add Zenodo DOI for ${{ github.event.release.tag_name }}"
-          body: "This PR adds the minted Zenodo DOI to CITATION.cff and README."
+          title: "Add Zenodo DOI to CITATION/README for ${{ inputs.tag || github.event.release.tag_name }}"
+          branch: update-doi-${{ inputs.tag || github.event.release.tag_name }}
+          commit-message: "Add Zenodo DOI for ${{ inputs.tag || github.event.release.tag_name }}"
+          body: "Adds the minted Zenodo DOI to CITATION.cff and README."
