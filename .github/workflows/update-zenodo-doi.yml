@@ -17,113 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Find Zenodo record and patch files
-        shell: bash
         env:
           TAG: ${{ github.event.release.tag_name }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
-        run: |
-          set -euo pipefail
-          cat > doi_patch.py <<'PY'
-import os, json, time, urllib.parse, urllib.request, sys, re, subprocess, pathlib
-
-base = os.environ["ZENODO_BASE"].rstrip("/")
-owner = os.environ["OWNER"]
-repo  = os.environ["REPO"]
-tag   = os.environ.get("TAG") or input().strip()  # allows manual run with empty TAG
-
-release_url = f"https://github.com/{owner}/{repo}/releases/tag/{tag}"
-q = f'metadata.related_identifiers.identifier:"{release_url}"'
-url = f'{base}/api/records/?q={urllib.parse.quote(q)}&size=5&sort=mostrecent'
-
-def fetch(u):
-    with urllib.request.urlopen(u) as r:
-        return json.load(r)
-
-hits = []
-for i in range(20):  # up to ~5 min total
-    try:
-        data = fetch(url)
-        hits = data.get("hits", {}).get("hits", [])
-        if hits:
-            break
-    except Exception:
-        pass
-    print(f"Zenodo record not found yet (attempt {i+1}/20); sleeping 15s...")
-    time.sleep(15)
-
-if not hits:
-    print("::warning ::No Zenodo record for this release yet; exiting neutral.")
-    sys.exit(78)
-
-rec = hits[0]
-doi = rec.get("doi")
-conceptdoi = rec.get("conceptdoi") or rec.get("metadata", {}).get("conceptdoi")
-rels = rec.get("metadata", {}).get("related_identifiers", []) or []
-if not any(release_url == ri.get("identifier") for ri in rels):
-    print("::error ::Record does not reference this release URL")
-    sys.exit(1)
-
-print(f"Found DOI: {doi}")
-print(f"Concept DOI: {conceptdoi}")
-
-def patch(path, pattern, repl, flags=re.M):
-    p = pathlib.Path(path)
-    if not p.exists():
-        return False
-    txt = p.read_text(encoding="utf-8")
-    new = re.sub(pattern, repl, txt, flags=flags)
-    if new != txt:
-        p.write_text(new, encoding="utf-8")
-        return True
-    return False
-
-changed = False
-
-# CITATION.cff
-p_cff = pathlib.Path("CITATION.cff")
-if p_cff.exists():
-    txt = p_cff.read_text(encoding="utf-8")
-    if "identifiers:" in txt:
-        if re.search(r'(?ms)-\s*type:\s*doi\s*\n\s*value:\s*".*?"', txt):
-            changed |= patch("CITATION.cff",
-                             r'(?ms)(-\s*type:\s*doi\s*\n\s*value:\s*).*',
-                             r'\1"'+doi+'"')
-        else:
-            changed |= patch("CITATION.cff",
-                             r'(?ms)(identifiers:\s*(?:-.*\n)*)$',
-                             r'\1- type: doi\n  value: "'+doi+'"\n')
-    else:
-        p_cff.write_text(txt + f'\nidentifiers:\n- type: doi\n  value: "{doi}"\n', encoding="utf-8")
-        changed = True
-
-# README.md
-p_md = pathlib.Path("README.md")
-if p_md.exists():
-    txt = p_md.read_text(encoding="utf-8")
-    if "DOI:" in txt:
-        changed |= patch("README.md", r'(DOI:\s*)(\S+)', r'\1'+doi)
-    else:
-        p_md.write_text(txt + f'\n\n**DOI:** {doi}\n', encoding="utf-8")
-        changed = True
-
-if not changed:
-    print("::notice ::No file changes needed.")
-    sys.exit(0)
-
-subprocess.check_call(["git","config","user.name","doi-bot"])
-subprocess.check_call(["git","config","user.email","doi-bot@users.noreply.github.com"])
-branch = f"update-doi-{tag}"
-subprocess.check_call(["git","checkout","-b", branch])
-subprocess.check_call(["git","add","CITATION.cff","README.md"])
-subprocess.check_call(["git","commit","-m", f"Add Zenodo DOI for {tag}: {doi}"])
-subprocess.check_call(["git","push","origin","HEAD"])
-print("::notice ::Pushed branch with DOI update.")
-PY
-          python doi_patch.py
+        run: python scripts/doi_patch.py
 
       - name: Open PR
+        if: ${{ github.event.release.tag_name != '' }}
         uses: peter-evans/create-pull-request@v6
         with:
           title: Add Zenodo DOI to CITATION/README for ${{ github.event.release.tag_name }}
