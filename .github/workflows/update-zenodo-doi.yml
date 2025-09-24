@@ -1,195 +1,110 @@
 name: Update Zenodo DOI in docs
-
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Tag to patch (e.g., v0.1.7). Leave blank to use the release tag."
-        required: false
-        default: ""
-
-permissions:
-  contents: write
-  pull-requests: write
 
 jobs:
   update-doi:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write         # allow pushing a branch
+      pull-requests: write    # allow opening a PR
+    env:
+      ZENODO_BASE: https://zenodo.org
+      TAG: ${{ github.event.release.tag_name }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
 
-      # 1) Resolve tag + fetch DOI (never fail). Exposes outputs: found, doi, tag
-      - name: Fetch Zenodo DOI (by concept or release URL)
-        id: fetch
-        env:
-          TAG_INPUT: ${{ github.event.inputs.tag }}
-          EVENT_NAME: ${{ github.event_name }}
-          REPO: ${{ github.repository }}   # e.g., glenritschel/scleroderma-scvi
-          CONCEPT_SECRET: ${{ secrets.ZENODO_CONCEPT_DOI }}
-          CONCEPT_VAR: ${{ vars.ZENODO_CONCEPT_DOI }}
+      - name: Find Zenodo record for this GitHub release
         run: |
           python - <<'PY'
-          import os, json, time, urllib.request, urllib.parse
+import os, json, time, urllib.parse, urllib.request, sys, re, subprocess, pathlib
+base = os.environ["ZENODO_BASE"].rstrip("/")
+owner = os.environ["OWNER"]; repo = os.environ["REPO"]; tag = os.environ["TAG"]
+release_url = f"https://github.com/{owner}/{repo}/releases/tag/{tag}"
+q = f'metadata.related_identifiers.identifier:"{release_url}"'
+url = f'{base}/api/records/?q={urllib.parse.quote(q)}&size=5&sort=mostrecent'
 
-          def q(url):
-              with urllib.request.urlopen(url) as r:
-                  return json.load(r)
+def fetch(u):
+    with urllib.request.urlopen(u) as r:
+        return json.load(r)
 
-          # resolve tag
-          tag = os.environ.get("TAG_INPUT") or ""
-          if not tag and os.environ.get("EVENT_NAME") == "release":
-              with open(os.environ["GITHUB_EVENT_PATH"]) as f:
-                  tag = json.load(f).get("release", {}).get("tag_name", "")
+hits = []
+for i in range(20):  # poll up to ~5 minutes total
+    try:
+        data = fetch(url)
+        hits = data.get("hits",{}).get("hits",[])
+        if hits: break
+    except Exception:
+        pass
+    print(f"Zenodo record not found yet (attempt {i+1}/20); sleeping 15s...")
+    time.sleep(15)
 
-          repo = os.environ.get("REPO","")
-          concept = os.environ.get("CONCEPT_SECRET") or os.environ.get("CONCEPT_VAR") or ""
+if not hits:
+    print("::warning ::No Zenodo record for this release yet; exiting neutral.")
+    sys.exit(78)
 
-          if not tag or not repo:
-              print("::notice ::Missing tag or repo"); 
-              open(os.environ["GITHUB_OUTPUT"],"a").write("found=false\ndoi=\n"); 
-              raise SystemExit(0)
+rec = hits[0]
+doi = rec.get("doi")
+conceptdoi = rec.get("conceptdoi") or rec.get("metadata",{}).get("conceptdoi")
+rels = rec.get("metadata",{}).get("related_identifiers",[]) or []
+assert any(release_url == ri.get("identifier") for ri in rels), "Record does not reference this release URL"
 
-          # candidates: with and without 'v'
-          versions = [v for v in {tag, tag.lstrip('v')} if v]
+print(f"Found DOI: {doi}")
+print(f"Concept DOI: {conceptdoi}")
 
-          # 1) try by concept (if known)
-          urls = []
-          if concept:
-              core = f'conceptdoi:{concept}+AND+(' + " OR ".join(f'metadata.version:"{v}"' for v in versions) + ")"
-              urls.append("https://zenodo.org/api/records/?size=50&q=" + urllib.parse.quote(core))
+def patch(path, pattern, repl, flags=re.M):
+    p = pathlib.Path(path)
+    if not p.exists(): return
+    txt = p.read_text(encoding="utf-8")
+    new = re.sub(pattern, repl, txt, flags=flags)
+    p.write_text(new, encoding="utf-8")
 
-          # 2) fall back to searching by the GitHub release URL (isSupplementTo / related_identifiers)
-          rel_urls = [
-              f"https://github.com/{repo}/releases/tag/{tag}",
-              f"https://github.com/{repo}/releases/tag/{tag.lstrip('v')}",
-          ]
-          for u in rel_urls:
-              core = f'metadata.related_identifiers.identifier:"{u}"'
-              urls.append("https://zenodo.org/api/records/?size=50&q=" + urllib.parse.quote(core))
+# CITATION.cff: ensure identifiers include the version DOI
+p_cff = pathlib.Path("CITATION.cff")
+if p_cff.exists():
+    txt = p_cff.read_text(encoding="utf-8")
+    if "identifiers:" in txt:
+        # replace existing DOI line or append under identifiers:
+        if re.search(r'(?ms)-\s*type:\s*doi\s*\n\s*value:\s*".*?"', txt):
+            patch("CITATION.cff",
+                  r'(?ms)(-\s*type:\s*doi\s*\n\s*value:\s*).*',
+                  r'\1"'+doi+'"')
+        else:
+            patch("CITATION.cff",
+                  r'(?ms)(identifiers:\s*(?:-.*\n)*)$',
+                  r'\1- type: doi\n  value: "'+doi+'"\n')
+    else:
+        with open("CITATION.cff","a",encoding="utf-8") as f:
+            f.write(f'\nidentifiers:\n- type: doi\n  value: "{doi}"\n')
 
-          def find(tries=20):
-              sleep = 10
-              for i in range(tries):
-                  for url in urls:
-                      data = q(url)
-                      hits = data.get("hits", {}).get("hits", [])
-                      if hits:
-                          # newest first
-                          hits.sort(key=lambda h: h.get("updated",""), reverse=True)
-                          return hits[0]
-                  print(f"Zenodo record not found yet (attempt {i+1}/{tries}); sleeping {sleep}s...")
-                  time.sleep(sleep)
-                  sleep = min(sleep*1.5, 30)
-              return None
+# README.md: update or append a DOI line
+p_md = pathlib.Path("README.md")
+if p_md.exists():
+    txt = p_md.read_text(encoding="utf-8")
+    if "DOI:" in txt:
+        patch("README.md", r'(DOI:\s*)(\S+)', r'\1'+doi)
+    else:
+        with open("README.md","a",encoding="utf-8") as f:
+            f.write(f'\n\n**DOI:** {doi}\n')
 
-          rec = find()
-          doi = rec.get("doi") if rec else ""
-          with open(os.environ["GITHUB_OUTPUT"],"a") as fh:
-              fh.write(f"found={'true' if bool(doi) else 'false'}\n")
-              fh.write(f"doi={doi}\n")
-              fh.write(f"tag={tag}\n")
-          if doi:
-              # print concept so you can store it for future runs
-              conceptdoi = rec.get("conceptdoi") or rec.get("conceptdoi", "")
-              if conceptdoi:
-                  print("Concept DOI:", conceptdoi)
-              print("Found DOI:", doi)
-          PY
+# Commit branch & push
+subprocess.check_call(["git","config","user.name","doi-bot"])
+subprocess.check_call(["git","config","user.email","doi-bot@users.noreply.github.com"])
+branch = f"update-doi-{tag}"
+subprocess.check_call(["git","checkout","-b", branch])
+subprocess.check_call(["git","add","CITATION.cff","README.md"])
+subprocess.check_call(["git","commit","-m", f"Add Zenodo DOI for {tag}: {doi}"])
+subprocess.check_call(["git","push","origin","HEAD"])
+print("::notice ::Pushed branch with DOI update.")
+PY
 
-      # 2) Patch files only if a DOI was found
-      - name: Patch CITATION.cff and README.md
-        if: steps.fetch.outputs.found == 'true'
-        env:
-          DOI: ${{ steps.fetch.outputs.doi }}
-          TAG: ${{ steps.fetch.outputs.tag }}
-        run: |
-          python - <<'PY'
-          import os, re
-          from pathlib import Path
-          try:
-              import yaml
-          except ImportError:
-              import sys, subprocess
-              subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml"])
-              import yaml
-
-          doi = os.environ["DOI"]
-          tag = os.environ.get("TAG") or ""
-
-          # --- CITATION.cff ---
-          cff_p = Path("CITATION.cff")
-          if cff_p.exists():
-              cff = yaml.safe_load(cff_p.read_text(encoding="utf-8")) or {}
-              # ensure identifiers contains DOI
-              ids = [i for i in (cff.get("identifiers") or []) if isinstance(i, dict)]
-              vals = {i.get("value") for i in ids}
-              if doi not in vals:
-                  ids.append({"type": "doi", "value": doi})
-              cff["identifiers"] = ids
-              # 🚀 always sync version to the tag (keeps the leading 'v')
-              cff["version"] = tag
-              # date-released: only set if missing
-              from datetime import date
-              if not cff.get("date-released"):
-                  cff["date-released"] = date.today().isoformat()
-              cff_p.write_text(yaml.safe_dump(cff, sort_keys=False), encoding="utf-8")
-              print("Patched CITATION.cff (version ->", tag, ", DOI ->", doi, ")")
-          else:
-              print("CITATION.cff not found; skipping.")
-
-          # --- README.md ---
-          rd = Path("README.md")
-          txt = rd.read_text(encoding="utf-8") if rd.exists() else "# README\n\n"
-          # update DOI line (keeps your previous behavior)
-          if re.search(r"DOI:\s*10\.\d{4,9}/\S+", txt):
-              txt = re.sub(r"(DOI:\s*)10\.\d{4,9}/\S+", rf"\g<1>{doi}", txt)
-          else:
-              txt += f"\n\n**Citation**: DOI: {doi}\n"
-
-          # OPTIONAL: update a clear README version line if present (non-destructive)
-          # Matches lines like: "Version: v0.1.8"
-          new_txt = re.sub(r"(?im)^(?P<prefix>\**\s*Version:\s*)v?\d+\.\d+\.\d+(\**)?",
-                          rf"\g<prefix>{tag}", txt)
-          if new_txt != txt:
-              txt = new_txt
-              print("Patched README.md version line ->", tag)
-
-          rd.write_text(txt, encoding="utf-8")
-          print("Patched README.md DOI")
-          PY
-
-      - name: Verify CITATION version matches tag
-        if: steps.fetch.outputs.found == 'true'
-        env:
-          TAG: ${{ steps.fetch.outputs.tag }}
-        run: |
-          python - <<'PY'
-          import os, sys, yaml
-          tag = os.environ["TAG"]
-          with open("CITATION.cff", "r", encoding="utf-8") as f:
-              c = yaml.safe_load(f) or {}
-          ver = c.get("version", "")
-          if ver != tag:
-              print(f"::error ::CITATION.cff version ({ver}) != tag ({tag})")
-              sys.exit(1)
-          print("CITATION.cff version OK:", ver)
-          PY
-
-      # 3) Open PR (only when patched)
-      - name: Create PR
-        if: steps.fetch.outputs.found == 'true'
+      - name: Open PR
         uses: peter-evans/create-pull-request@v6
         with:
-          base: ${{ github.event.repository.default_branch }}   # 👈 add this
-          branch: update-doi-${{ steps.fetch.outputs.tag }}
-          title: "Add Zenodo DOI to CITATION/README for ${{ steps.fetch.outputs.tag }}"
-          commit-message: "Add Zenodo DOI for ${{ steps.fetch.outputs.tag }}"
-          body: "Adds the minted Zenodo DOI to CITATION.cff and README."
+          title: "Add Zenodo DOI to CITATION/README for ${{ github.event.release.tag_name }}"
+          branch: update-doi-${{ github.event.release.tag_name }}
+          body: "PR adds the minted Zenodo DOI to CITATION.cff and README, derived from the GitHub release URL."
