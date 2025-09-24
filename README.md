@@ -79,3 +79,6 @@ Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals th
 - **Generated:** YYYY-MM-DD
 
 _Reproduce:_ run notebooks `06_results.ipynb` → `07_state_signatures_and_drugs.ipynb` → `08_validation_and_robustness.ipynb`.
+
+
+**Citation**: DOI: 10.5281/zenodo.17158345
