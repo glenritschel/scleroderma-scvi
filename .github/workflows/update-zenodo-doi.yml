@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
@@ -156,7 +159,8 @@ jobs:
         if: steps.fetch.outputs.found == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "Add Zenodo DOI to CITATION/README for ${{ steps.fetch.outputs.tag }}"
+          base: ${{ github.event.repository.default_branch }}   # 👈 add this
           branch: update-doi-${{ steps.fetch.outputs.tag }}
+          title: "Add Zenodo DOI to CITATION/README for ${{ steps.fetch.outputs.tag }}"
           commit-message: "Add Zenodo DOI for ${{ steps.fetch.outputs.tag }}"
           body: "Adds the minted Zenodo DOI to CITATION.cff and README."
