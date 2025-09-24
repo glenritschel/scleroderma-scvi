@@ -1,0 +1,32 @@
+TITLE
+Single-cell drug repurposing for scleroderma skin using scVI and LINCS reversal
+
+AUTHORS & AFFILIATIONS
+Glen Ritschel¹*
+¹ Affiliation placeholder (Department / Institution / City, State, Country)
+
+CORRESPONDING AUTHOR
+Name: Glen Ritschel
+Email: glen.ritschel@gmail.com
+
+ABSTRACT
+Background  Systemic sclerosis (SSc) lacks disease-modifying therapies for skin fibrosis. We asked whether single-cell transcriptomes can highlight drug mechanisms with potential to reverse disease-associated programs in SSc skin.
+Methods  We re-analyzed 56,147 skin cells (post-QC) from GSE138669 with scVI for integration, clustering, and differential expression. Cell states were annotated by curated marker panels and module scores. Cluster-level up/down signatures were tested with Enrichr (GO/Reactome/KEGG and LINCS L1000 Chemical Perturbations). We summarized per-compound “reversal” (down-regulating cluster-up and vice versa) across doses and time points, and ranked candidates with a transparent score (total reversal, fibro selectivity, dose/time consistency, and flags).
+Results  The dataset resolved 20 Leiden clusters (median 1,099 genes/cell; median 3.5% mitochondrial and 24.9% ribosomal). High-mitochondrial clusters included 12 (2.9%), 10 (2.8%), 5 (2.4%); high-ribosomal included 4 (23.4%), 1 (19.0%), 5 (18.2%). The minority sample accounted for 18.6% of cells with cluster-specific deviations. Fibroblast cluster 0 showed markers HMGA1, CCDC80, SOD3; keratinocyte cluster 9 showed GPM6B, RPLP0, RPL12. Pathways recurring across fibroblast clusters included MAPK/ERK, SRC family kinase signaling, AKT/mTOR, PLK1, BET bromodomains, and JNK. Aggregating LINCS reversal highlighted a shortlist led by PD-0325901 (MEK inhibitor; support in clusters 15, 16, 18, 5, 6) and dasatinib (SRC/ABL inhibitor; 15, 5, 7, 9).
+Conclusions  Single-cell state signatures in SSc skin align with drug mechanisms known to modulate fibroblast programs and nominate tractable hypotheses for testing. Reversal in LINCS cell lines does not imply efficacy/safety in patients; findings are hypothesis-generating and require experimental validation.
+
+KEYWORDS
+single-cell RNA-seq; scleroderma; scVI; drug repurposing; LINCS; fibroblasts
+
+SUBJECT AREA
+Bioinformatics / Computational Biology; Rheumatology; Genomics
+
+DECLARATIONS
+Competing Interests: The author declares no competing interests.
+Funding: None.
+Ethics: Public, de-identified data were used; no new human subjects were enrolled. Institutional review approval and consent are not applicable for this re-analysis.
+Clinical Trial Registration: Not applicable.
+Data Availability: Raw data: GEO GSE138669. Derived tables and figures: Zenodo 10.5281/zenodo.17158345.
+Code Availability: https://github.com/glenritschel/scleroderma-scvi (archived at Zenodo 10.5281/zenodo.17158345).
+Prior Posting: The manuscript has not been previously posted as a preprint.
+Author Contributions (CRediT): Conceptualization, Methodology, Software, Formal analysis, Visualization, Writing — Glen Ritschel.

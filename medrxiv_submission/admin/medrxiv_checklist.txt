@@ -1,0 +1,31 @@
+medRxiv Submission Checklist
+
+Required uploads:
+[ ] Manuscript (DOCX): manuscript_medrxiv_draft.docx  (or manuscript_medrxiv_placeholders.docx if you’re dropping images later)
+[ ] Figures (separate image files; PNG preferred):
+    - results/drug_repurposing/fig_overview.png
+    - results/figures/umap_leiden_final.png
+    - results/figures/umap_pct_counts_mt_final.png
+    - results/figures/umap_pct_counts_ribo_final.png
+    - results/figures/umap_celltype_final.png
+    - results/figures/dotplot__Fibroblast_core_dot.png
+    - results/figures/dotplot__Kerat_basal_dot.png
+    - results/drug_repurposing/fig_compound_vs_celltype_heatmap.png
+    - results/drug_repurposing/fig_final_shortlist_bar.png
+    - results/drug_repurposing/dose_time_plots/dose_resp__PD-0325901.png
+[ ] Figure captions (TXT): figure_captions.txt
+[ ] Supplementary data:
+    - results/supplementary/supplementary_table_s1_ensembl_to_hgnc.csv  (mapping table)
+    - (optional) additional supplementary figures or tables as PDFs/CSVs
+[ ] Submission form text (TXT): submission_form_text.txt
+[ ] Cover letter (TXT): cover_letter.txt
+
+Optional:
+[ ] License file (TXT): license_CC_BY_4.0.txt
+[ ] README manifest of all uploaded items
+
+Administrative:
+[ ] Confirm author name and affiliation
+[ ] Confirm corresponding author email: glen.ritschel@gmail.com
+[ ] Confirm declarations (competing interests, funding, ethics)
+[ ] Check that all external DOIs/links resolve (GEO GSE138669; Zenodo 10.5281/zenodo.17158345; GitHub repo)

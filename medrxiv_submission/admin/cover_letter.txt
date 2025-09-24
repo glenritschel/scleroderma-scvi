@@ -1,0 +1,13 @@
+Dear medRxiv Editors,
+
+Please consider our manuscript, “Single-cell drug repurposing for scleroderma skin using scVI and LINCS reversal,” for posting on medRxiv.
+
+We re-analyze a public single-cell RNA-seq dataset of systemic sclerosis (SSc) skin using scVI and curated marker panels to define cell states, apply pathway enrichment, and integrate LINCS L1000 signatures to prioritize candidate drug mechanisms. MEK and SRC/ABL inhibition emerge consistently across fibroblast-like states. We provide transparent scoring, dose/time consistency checks, and complete reproducibility materials (code, lockfiles, and Zenodo archive).
+
+This work is hypothesis-generating and does not claim clinical efficacy. All data are publicly available; no new human subjects were enrolled.
+
+Thank you for your consideration.
+
+Sincerely,
+Glen Ritschel
+glen.ritschel@gmail.com

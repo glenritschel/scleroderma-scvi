@@ -1,0 +1,14 @@
+Figure 1. Study overview and scoring framework
+Overview of the analysis: (i) scVI integration and Leiden clustering; (ii) cluster annotation via curated marker panels and module scoring; (iii) differential expression and pathway enrichment (GO/Reactome/KEGG); (iv) LINCS L1000 reversal tests contrasting up/down signatures; (v) aggregation across compounds, doses, and time to produce a ranked shortlist with transparency (total reversal, fibro selectivity, dose/time consistency, caution flags).
+
+Figure 2. QC and clustering
+UMAP colored by Leiden clusters; mitochondrial and ribosomal percentage panels highlight clusters with elevated QC metrics. Median genes/cell = 1,099; median mt = 3.5%; median ribo = 24.9%. High-mito clusters: 12 (2.9%), 10 (2.8%), 5 (2.4%). High-ribo clusters: 4 (23.4%), 1 (19.0%), 5 (18.2%).
+
+Figure 3. Cell-type annotations
+Cell-type assignments by curated markers and module scores. Example dotplots for fibroblast core and keratinocyte strata; UMAP colored by final cell type. Ambiguous clusters (low margins) are flagged in tables.
+
+Figure 4. LINCS reversal evidence and shortlist
+Compound-by-cell-type reversal heatmap and overall shortlist ranking. MEK and SRC/ABL inhibitors emerge as consistent signals across fibroblast-like states. Bars reflect composite score components (total reversal, selectivity, dose/time consistency), with caution flags noted.
+
+Figure 5. Dose/time consistency and examples
+Dose-response and time-course consistency for top compounds and example one-pagers summarizing mechanism, dose windows, and the supporting clusters. Reversal in immortalized cell lines is hypothesis-generating; not a proxy for therapeutic efficacy.
