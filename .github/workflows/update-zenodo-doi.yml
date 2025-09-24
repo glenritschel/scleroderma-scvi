@@ -1,29 +1,37 @@
 name: Update Zenodo DOI in docs
+
 on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-doi:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write         # allow pushing a branch
-      pull-requests: write    # allow opening a PR
     env:
       ZENODO_BASE: https://zenodo.org
-      TAG: ${{ github.event.release.tag_name }}
-      OWNER: ${{ github.repository_owner }}
-      REPO: ${{ github.event.repository.name }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find Zenodo record for this GitHub release
+      - name: Find Zenodo record and patch files
+        shell: bash
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
         run: |
           python - <<'PY'
 import os, json, time, urllib.parse, urllib.request, sys, re, subprocess, pathlib
+
 base = os.environ["ZENODO_BASE"].rstrip("/")
-owner = os.environ["OWNER"]; repo = os.environ["REPO"]; tag = os.environ["TAG"]
+owner = os.environ["OWNER"]
+repo  = os.environ["REPO"]
+tag   = os.environ["TAG"]
+
 release_url = f"https://github.com/{owner}/{repo}/releases/tag/{tag}"
 q = f'metadata.related_identifiers.identifier:"{release_url}"'
 url = f'{base}/api/records/?q={urllib.parse.quote(q)}&size=5&sort=mostrecent'
@@ -33,11 +41,12 @@ def fetch(u):
         return json.load(r)
 
 hits = []
-for i in range(20):  # poll up to ~5 minutes total
+for i in range(20):  # up to ~5 min
     try:
         data = fetch(url)
-        hits = data.get("hits",{}).get("hits",[])
-        if hits: break
+        hits = data.get("hits", {}).get("hits", [])
+        if hits:
+            break
     except Exception:
         pass
     print(f"Zenodo record not found yet (attempt {i+1}/20); sleeping 15s...")
@@ -49,8 +58,8 @@ if not hits:
 
 rec = hits[0]
 doi = rec.get("doi")
-conceptdoi = rec.get("conceptdoi") or rec.get("metadata",{}).get("conceptdoi")
-rels = rec.get("metadata",{}).get("related_identifiers",[]) or []
+conceptdoi = rec.get("conceptdoi") or rec.get("metadata", {}).get("conceptdoi")
+rels = rec.get("metadata", {}).get("related_identifiers", []) or []
 assert any(release_url == ri.get("identifier") for ri in rels), "Record does not reference this release URL"
 
 print(f"Found DOI: {doi}")
@@ -58,40 +67,51 @@ print(f"Concept DOI: {conceptdoi}")
 
 def patch(path, pattern, repl, flags=re.M):
     p = pathlib.Path(path)
-    if not p.exists(): return
+    if not p.exists():
+        return False
     txt = p.read_text(encoding="utf-8")
     new = re.sub(pattern, repl, txt, flags=flags)
-    p.write_text(new, encoding="utf-8")
+    if new != txt:
+        p.write_text(new, encoding="utf-8")
+        return True
+    return False
+
+changed = False
 
 # CITATION.cff: ensure identifiers include the version DOI
 p_cff = pathlib.Path("CITATION.cff")
 if p_cff.exists():
     txt = p_cff.read_text(encoding="utf-8")
     if "identifiers:" in txt:
-        # replace existing DOI line or append under identifiers:
+        # replace existing DOI value if present; else append an entry
         if re.search(r'(?ms)-\s*type:\s*doi\s*\n\s*value:\s*".*?"', txt):
-            patch("CITATION.cff",
-                  r'(?ms)(-\s*type:\s*doi\s*\n\s*value:\s*).*',
-                  r'\1"'+doi+'"')
+            changed |= patch("CITATION.cff",
+                             r'(?ms)(-\s*type:\s*doi\s*\n\s*value:\s*).*',
+                             r'\1"'+doi+'"')
         else:
-            patch("CITATION.cff",
-                  r'(?ms)(identifiers:\s*(?:-.*\n)*)$',
-                  r'\1- type: doi\n  value: "'+doi+'"\n')
+            changed |= patch("CITATION.cff",
+                             r'(?ms)(identifiers:\s*(?:-.*\n)*)$',
+                             r'\1- type: doi\n  value: "'+doi+'"\n')
     else:
         with open("CITATION.cff","a",encoding="utf-8") as f:
             f.write(f'\nidentifiers:\n- type: doi\n  value: "{doi}"\n')
+        changed = True
 
 # README.md: update or append a DOI line
 p_md = pathlib.Path("README.md")
 if p_md.exists():
     txt = p_md.read_text(encoding="utf-8")
     if "DOI:" in txt:
-        patch("README.md", r'(DOI:\s*)(\S+)', r'\1'+doi)
+        changed |= patch("README.md", r'(DOI:\s*)(\S+)', r'\1'+doi)
     else:
         with open("README.md","a",encoding="utf-8") as f:
             f.write(f'\n\n**DOI:** {doi}\n')
+        changed = True
 
-# Commit branch & push
+if not changed:
+    print("::notice ::No file changes needed.")
+    sys.exit(0)
+
 subprocess.check_call(["git","config","user.name","doi-bot"])
 subprocess.check_call(["git","config","user.email","doi-bot@users.noreply.github.com"])
 branch = f"update-doi-{tag}"
@@ -105,6 +125,6 @@ PY
       - name: Open PR
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "Add Zenodo DOI to CITATION/README for ${{ github.event.release.tag_name }}"
+          title: Add Zenodo DOI to CITATION/README for ${{ github.event.release.tag_name }}
           branch: update-doi-${{ github.event.release.tag_name }}
-          body: "PR adds the minted Zenodo DOI to CITATION.cff and README, derived from the GitHub release URL."
+          body: PR adds the minted Zenodo DOI to CITATION.cff and README (derived from the GitHub release URL).
