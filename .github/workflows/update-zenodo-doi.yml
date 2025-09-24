@@ -24,58 +24,81 @@ jobs:
           python-version: "3.x"
 
       # 1) Resolve tag + fetch DOI (never fail). Exposes outputs: found, doi, tag
-      - name: Fetch Zenodo DOI
+      - name: Fetch Zenodo DOI (by concept or release URL)
         id: fetch
         env:
           TAG_INPUT: ${{ github.event.inputs.tag }}
           EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}   # e.g., glenritschel/scleroderma-scvi
           CONCEPT_SECRET: ${{ secrets.ZENODO_CONCEPT_DOI }}
           CONCEPT_VAR: ${{ vars.ZENODO_CONCEPT_DOI }}
         run: |
           python - <<'PY'
-          import os, json, time, urllib.request
-          from urllib.error import HTTPError
+          import os, json, time, urllib.request, urllib.parse
 
-          # Resolve tag (from input or release payload)
+          def q(url):
+              with urllib.request.urlopen(url) as r:
+                  return json.load(r)
+
+          # resolve tag
           tag = os.environ.get("TAG_INPUT") or ""
           if not tag and os.environ.get("EVENT_NAME") == "release":
-              path = os.environ.get("GITHUB_EVENT_PATH")
-              if path and os.path.exists(path):
-                  with open(path) as f:
-                      tag = json.load(f).get("release", {}).get("tag_name", "")
+              with open(os.environ["GITHUB_EVENT_PATH"]) as f:
+                  tag = json.load(f).get("release", {}).get("tag_name", "")
 
-          # Resolve concept DOI from secret/variable, fallback to literal (public anyway)
-          concept = os.environ.get("CONCEPT_SECRET") or os.environ.get("CONCEPT_VAR") or "10.5281/zenodo.17156327"
+          repo = os.environ.get("REPO","")
+          concept = os.environ.get("CONCEPT_SECRET") or os.environ.get("CONCEPT_VAR") or ""
 
-          found, doi = False, ""
-          if tag:
-              def fetch(concept, tag, tries=10, sleep=20):
-                  q = f"https://zenodo.org/api/records/?q=conceptdoi:{concept}+AND+metadata.version:{tag}"
-                  for i in range(tries):
-                      try:
-                          with urllib.request.urlopen(q) as r:
-                              data = json.load(r)
-                          hits = data.get("hits", {}).get("hits", [])
-                          if hits:
-                              hits.sort(key=lambda h: h.get("updated",""), reverse=True)
-                              return hits[0]
-                      except HTTPError as e:
-                          if 500 <= e.code < 600:
-                              pass
-                      print(f"Zenodo record not found yet (attempt {i+1}/{tries}); sleeping {sleep}s...")
-                      time.sleep(sleep)
-                  return None
+          if not tag or not repo:
+              print("::notice ::Missing tag or repo"); 
+              open(os.environ["GITHUB_OUTPUT"],"a").write("found=false\ndoi=\n"); 
+              raise SystemExit(0)
 
-              rec = fetch(concept, tag)
-              if rec:
-                  doi = rec.get("doi") or rec.get("metadata", {}).get("prereserve_doi", {}).get("doi", "")
-                  found = bool(doi)
+          # candidates: with and without 'v'
+          versions = [v for v in {tag, tag.lstrip('v')} if v]
 
-          # Write GitHub outputs
-          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              fh.write(f"found={'true' if found else 'false'}\n")
+          # 1) try by concept (if known)
+          urls = []
+          if concept:
+              core = f'conceptdoi:{concept}+AND+(' + " OR ".join(f'metadata.version:"{v}"' for v in versions) + ")"
+              urls.append("https://zenodo.org/api/records/?size=50&q=" + urllib.parse.quote(core))
+
+          # 2) fall back to searching by the GitHub release URL (isSupplementTo / related_identifiers)
+          rel_urls = [
+              f"https://github.com/{repo}/releases/tag/{tag}",
+              f"https://github.com/{repo}/releases/tag/{tag.lstrip('v')}",
+          ]
+          for u in rel_urls:
+              core = f'metadata.related_identifiers.identifier:"{u}"'
+              urls.append("https://zenodo.org/api/records/?size=50&q=" + urllib.parse.quote(core))
+
+          def find(tries=20):
+              sleep = 10
+              for i in range(tries):
+                  for url in urls:
+                      data = q(url)
+                      hits = data.get("hits", {}).get("hits", [])
+                      if hits:
+                          # newest first
+                          hits.sort(key=lambda h: h.get("updated",""), reverse=True)
+                          return hits[0]
+                  print(f"Zenodo record not found yet (attempt {i+1}/{tries}); sleeping {sleep}s...")
+                  time.sleep(sleep)
+                  sleep = min(sleep*1.5, 30)
+              return None
+
+          rec = find()
+          doi = rec.get("doi") if rec else ""
+          with open(os.environ["GITHUB_OUTPUT"],"a") as fh:
+              fh.write(f"found={'true' if bool(doi) else 'false'}\n")
               fh.write(f"doi={doi}\n")
               fh.write(f"tag={tag}\n")
+          if doi:
+              # print concept so you can store it for future runs
+              conceptdoi = rec.get("conceptdoi") or rec.get("conceptdoi", "")
+              if conceptdoi:
+                  print("Concept DOI:", conceptdoi)
+              print("Found DOI:", doi)
           PY
 
       # 2) Patch files only if a DOI was found
