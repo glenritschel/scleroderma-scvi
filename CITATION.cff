@@ -1,18 +1,22 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-title: "Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration"
+message: If you use this software, please cite it as below.
+title: Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via
+  probabilistic modeling and knowledge integration
 authors:
-  - family-names: "Ritschel"
-    given-names: "Glen C."
-version: "v0.1.8"
-date-released: "2025-09-23"
-doi: "10.5281/zenodo.17156333"
-url: "https://github.com/glenritschel/scleroderma-scvi"
-license: "MIT"
+- family-names: Ritschel
+  given-names: Glen C.
+version: v0.1.8
+date-released: '2025-09-23'
+doi: 10.5281/zenodo.17156333
+url: https://github.com/glenritschel/scleroderma-scvi
+license: MIT
 keywords:
-  - systemic sclerosis
-  - CREST syndrome
-  - single-cell RNA-seq
-  - scvi-tools
-  - Open Targets
-  - AI-augmented research
+- systemic sclerosis
+- CREST syndrome
+- single-cell RNA-seq
+- scvi-tools
+- Open Targets
+- AI-augmented research
+identifiers:
+- type: doi
+  value: 10.5281/zenodo.17158345
