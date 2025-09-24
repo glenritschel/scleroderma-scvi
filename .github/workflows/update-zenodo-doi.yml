@@ -124,34 +124,63 @@ jobs:
           doi = os.environ["DOI"]
           tag = os.environ.get("TAG") or ""
 
-          # CITATION.cff
+          # --- CITATION.cff ---
           cff_p = Path("CITATION.cff")
           if cff_p.exists():
               cff = yaml.safe_load(cff_p.read_text(encoding="utf-8")) or {}
+              # ensure identifiers contains DOI
               ids = [i for i in (cff.get("identifiers") or []) if isinstance(i, dict)]
               vals = {i.get("value") for i in ids}
               if doi not in vals:
                   ids.append({"type": "doi", "value": doi})
               cff["identifiers"] = ids
-              if tag and not cff.get("version"):
-                  cff["version"] = tag
+              # 🚀 always sync version to the tag (keeps the leading 'v')
+              cff["version"] = tag
+              # date-released: only set if missing
               from datetime import date
               if not cff.get("date-released"):
                   cff["date-released"] = date.today().isoformat()
               cff_p.write_text(yaml.safe_dump(cff, sort_keys=False), encoding="utf-8")
-              print("Patched CITATION.cff")
+              print("Patched CITATION.cff (version ->", tag, ", DOI ->", doi, ")")
           else:
               print("CITATION.cff not found; skipping.")
 
-          # README.md
+          # --- README.md ---
           rd = Path("README.md")
           txt = rd.read_text(encoding="utf-8") if rd.exists() else "# README\n\n"
+          # update DOI line (keeps your previous behavior)
           if re.search(r"DOI:\s*10\.\d{4,9}/\S+", txt):
               txt = re.sub(r"(DOI:\s*)10\.\d{4,9}/\S+", rf"\g<1>{doi}", txt)
           else:
               txt += f"\n\n**Citation**: DOI: {doi}\n"
+
+          # OPTIONAL: update a clear README version line if present (non-destructive)
+          # Matches lines like: "Version: v0.1.8"
+          new_txt = re.sub(r"(?im)^(?P<prefix>\**\s*Version:\s*)v?\d+\.\d+\.\d+(\**)?",
+                          rf"\g<prefix>{tag}", txt)
+          if new_txt != txt:
+              txt = new_txt
+              print("Patched README.md version line ->", tag)
+
           rd.write_text(txt, encoding="utf-8")
-          print("Patched README.md")
+          print("Patched README.md DOI")
+          PY
+
+      - name: Verify CITATION version matches tag
+        if: steps.fetch.outputs.found == 'true'
+        env:
+          TAG: ${{ steps.fetch.outputs.tag }}
+        run: |
+          python - <<'PY'
+          import os, sys, yaml
+          tag = os.environ["TAG"]
+          with open("CITATION.cff", "r", encoding="utf-8") as f:
+              c = yaml.safe_load(f) or {}
+          ver = c.get("version", "")
+          if ver != tag:
+              print(f"::error ::CITATION.cff version ({ver}) != tag ({tag})")
+              sys.exit(1)
+          print("CITATION.cff version OK:", ver)
           PY
 
       # 3) Open PR (only when patched)
