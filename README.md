@@ -1,6 +1,7 @@
 # Systemic Sclerosis Single-Cell Atlas with scvi-tools
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17156333.svg)](https://doi.org/10.5281/zenodo.17156333)
+**DOI:** 10.5281/zenodo.17196144
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17156333.svg)](https://doi.org/10.5281/zenodo.17156327)
 
 This repository contains a reproducible pipeline to analyze open single-cell datasets in **systemic sclerosis (SSc/CREST syndrome)** and prioritize therapeutic targets.
 
@@ -65,7 +66,7 @@ python src/de_analysis.py
 
 **Citation**
 
-Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration* (v0.1.7). Zenodo. https://doi.org/10.5281/zenodo.17156333
+Ritschel, G. C. (2025). *Single-cell atlas of systemic sclerosis skin reveals therapeutic targets via probabilistic modeling and knowledge integration* (v0.1.7). Zenodo. https://doi.org/10.5281/zenodo.17156327
 
 ## Provenance & reproducibility
 
