@@ -1,0 +1,15 @@
+cell_type,n_cells,fraction
+Keratinocytes (suprabasal),11709,0.208542
+Fibroblasts,11572,0.206102
+Keratinocytes (basal),9184,0.163571
+Pericyte/SMC,6624,0.117976
+Endothelial,6381,0.113648
+T cells (naive/memory),2852,0.050795
+Myeloid (mono/mac),2657,0.047322
+Low-quality / ribosomal,1860,0.033127
+Myofibroblasts (?),1222,0.021764
+Myofibroblasts,1181,0.021034
+Mast cells,557,0.00992
+Lymphatic endothelium,275,0.004898
+Plasma cells,54,0.000962
+cDC1 / pDC mix,19,0.000338

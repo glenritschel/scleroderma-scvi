@@ -1,0 +1,21 @@
+leiden,cell_type
+0,Fibroblasts
+1,Keratinocytes (suprabasal)
+10,Keratinocytes (suprabasal)
+11,Myofibroblasts
+12,Mast cells
+13,Keratinocytes (basal)
+14,Low-quality / ribosomal
+15,Lymphatic endothelium
+16,Myofibroblasts
+17,Keratinocytes (suprabasal)
+18,Plasma cells
+19,cDC1 / pDC mix
+2,Pericyte/SMC
+3,Endothelial
+4,Keratinocytes (basal)
+5,Keratinocytes (basal)
+6,T cells (naive/memory)
+7,Myeloid (mono/mac)
+8,Low-quality / ribosomal
+9,Myofibroblasts (?)

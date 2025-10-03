@@ -1,0 +1,21 @@
+leiden,top,topZ,runner_up,runnerZ,margin
+0,Fibroblasts,4.27,Myofibroblasts,0.851,3.419
+1,Keratinocytes (suprabasal),3.989,Low-quality / ribosomal,1.22,2.769
+2,Pericyte/SMC,3.127,Myofibroblasts,1.965,1.162
+3,Endothelial,3.125,B cells,1.644,1.481
+4,Keratinocytes (basal),1.912,Low-quality / ribosomal,1.612,0.3
+5,Keratinocytes (basal),2.056,Low-quality / ribosomal,1.3,0.756
+6,T cells (naive/memory),4.334,Low-quality / ribosomal,0.967,3.367
+7,Myeloid (mono/mac),4.059,B cells,2.203,1.856
+8,Low-quality / ribosomal,0.55,Plasma cells,-0.087,0.637
+9,Fibroblasts,0.288,Myofibroblasts,0.061,0.227
+10,Keratinocytes (suprabasal),1.121,Keratinocytes (basal),0.446,0.675
+11,Myofibroblasts,3.357,Pericyte/SMC,2.715,0.642
+12,Mast cells,4.357,Pericyte/SMC,0.007,4.35
+13,Keratinocytes (basal),2.779,Low-quality / ribosomal,0.488,2.291
+14,Low-quality / ribosomal,0.484,Mast cells,-0.168,0.652
+15,Lymphatic endothelium,4.349,Endothelial,2.8,1.549
+16,Myofibroblasts,0.061,cDC1 / pDC mix,-0.224,0.285
+17,Keratinocytes (suprabasal),0.697,Myofibroblasts,0.148,0.549
+18,Plasma cells,3.742,B cells,1.677,2.064
+19,T/NK cytotoxic,4.336,cDC1 / pDC mix,4.335,0.001

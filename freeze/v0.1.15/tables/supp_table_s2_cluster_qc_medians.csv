@@ -1,0 +1,22 @@
+cluster_id,cluster_name,n_cells,median_n_genes,median_total_counts,pct_counts_mt,pct_counts_ribo
+0,Fibroblasts,11981,1225,3691,2.91,20.48
+1,Keratinocytes (suprabasal),989,931,1912,2.37,12.81
+2,Pericyte/SMC,4295,446,1033,0.36,39.13
+3,Endothelial,6560,1072,3149,3.29,23.47
+4,Keratinocytes (basal),9521,1188,3922,6.13,27.81
+5,Keratinocytes (basal),5142,906,3034,10.93,26.32
+6,T cells (naive/memory),2441,1104,3757,4.76,38.72
+7,Myeloid (mono/mac),2429,2384,10989,4.1,37.13
+8,Low-quality / ribosomal,5985,1604,4967,2.92,25.7
+9,Myofibroblasts (?),888,3025,15272,4.65,33.95
+10,Keratinocytes (suprabasal),2207,714,2261,9.49,18.85
+11,Myofibroblasts,2959,767,2202,2.02,28.88
+12,Mast cells,291,1182,2842,3.57,19.64
+13,Keratinocytes (basal),444,1116,2755,5.53,19.2
+14,Low-quality / ribosomal,1338,1157,2924,6.16,14.99
+15,Lymphatic endothelium,2721,1091,3907,2.64,17.5
+16,Myofibroblasts,123,983,1999,3.13,11.86
+17,Keratinocytes (suprabasal),349,360,732,2.78,20.69
+18,Plasma cells,90,438,1537,0.31,2.2
+19,cDC1 / pDC mix,19,1563,5255,1.69,31.59
+20,,55,1018,13204,0.52,8.39
