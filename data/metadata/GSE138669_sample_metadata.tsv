@@ -1,0 +1,23 @@
+sample	title	source_name_ch1	organism_ch1	platform_id	tissue	chemistry	condition	submission_date	last_update_date	instrument_model	library_selection	library_source	library_strategy
+GSM4115868	SC1	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115869	SC2	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115870	SC4	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115871	SC5	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115872	SC18	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115873	SC19	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115874	SC32	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115875	SC33	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115876	SC34	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V1 chemistry	CONTROL	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115877	SC49	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115878	SC50	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115879	SC60	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115880	SC68	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115881	SC69	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115882	SC70	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115883	SC86	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115884	SC119	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115885	SC124	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115886	SC125	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	CONTROL	Oct 09 2019	Jan 31 2025	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115887	SC185	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115888	SC188	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq
+GSM4115889	SC189	dorsal, mid-forearm skin biopsy	Homo sapiens	GPL18573	skin	10X Genomics 3 Prime V2 chemistry	SSC	Oct 09 2019	May 20 2021	Illumina NextSeq 500	cDNA	transcriptomic	RNA-Seq

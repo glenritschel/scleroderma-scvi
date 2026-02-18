@@ -5,6 +5,7 @@ import pandas as pd
 import scanpy as sc
 import scvi
 import scipy.sparse as sp
+import argparse
 
 DO_QC = False  # set True later if you want to attach .raw + recompute QC in this script
 
@@ -90,25 +91,32 @@ def _finalize_counts_qc(ad_hvg: sc.AnnData) -> None:
                                  if c in base.var.columns), "var_names"),
     })
 
+
 def train_scvi(
     input_h5ad: str = "ssc_skin_qc.h5ad",
     out_basename: str = "ssc_skin_scvi",
     n_top_hvgs: int = 4000,
-    batch_key: str = "sample",  # change or set to None if not present
+    batch_key: str | None = "sample",
     n_latent: int = 30,
     max_epochs: int = 100,
     leiden_resolution: float = 0.3,
+    cat_cov: str = "",
+    cont_cov: str = "",
 ):
-    in_path = PROC / input_h5ad
-    ad_full = sc.read_h5ad(in_path)
-    # after: ad_full = sc.read_h5ad(in_path)
-    assert "gene_symbol" in ad_full.var.columns, "gene_symbol missing; re-run preprocess.py after applying hardening patch."
+    cat_cov_keys = [x.strip() for x in cat_cov.split(",") if x.strip()]
+    cont_cov_keys = [x.strip() for x in cont_cov.split(",") if x.strip()]
+
+    ad_full = sc.read_h5ad(input_h5ad)
+
+    if "gene_symbol" not in ad_full.var.columns:
+        print("[modeling] gene_symbol missing; proceeding with Ensembl var_names.")
+
     if "mt" not in ad_full.var.columns or "ribo" not in ad_full.var.columns:
         names_u = ad_full.var["gene_symbol"].astype(str).str.upper()
         ad_full.var["mt"]   = names_u.str.startswith(("MT-","MT.","MT_"))
         ad_full.var["ribo"] = names_u.str.startswith(("RPS","RPL"))
 
-    print(f"[info] loaded {in_path}: {ad_full.shape}")
+    print(f"[info] loaded {input_h5ad}: {ad_full.shape}")
     print(f"[info] layers={list(getattr(ad_full, 'layers', {}).keys())}, raw={'yes' if ad_full.raw is not None else 'no'}")
     assert "counts" in ad_full.layers, "layers['counts'] is required (create it in preprocess.py before normalize/log)."
 
@@ -120,15 +128,19 @@ def train_scvi(
     ad = ad_full[:, hvgs].copy()
     print(f"[info] subset to HVGs: {ad_full.shape} → {ad.shape}")
 
-    # scVI on counts (with optional batch)
     scvi.model.SCVI.setup_anndata(
         ad,
+        batch_key=batch_key,
+        categorical_covariate_keys=cat_cov_keys or None,
+        continuous_covariate_keys=cont_cov_keys or None,
         layer="counts",
-        batch_key=batch_key if (batch_key and batch_key in ad.obs) else None,
     )
+
     model = scvi.model.SCVI(ad, n_latent=n_latent)
     model.train(max_epochs=max_epochs)
-    ad.obsm["X_scvi"] = model.get_latent_representation().astype("float32")
+    X = model.get_latent_representation().astype("float32")
+    ad.obsm["X_scVI"] = X
+    ad.obsm["X_scvi"] = X  # optional legacy alias
 
     # ---- free heavy stuff before building graph ----
     model = None
@@ -155,5 +167,41 @@ def train_scvi(
     ad.write(out, compression="gzip")
     print(f"[done] wrote {out}")
 
+
+def main():
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--input", dest="input_h5ad", default="ssc_skin_qc.h5ad")
+    ap.add_argument("--out-basename", dest="out_basename", default="ssc_skin_scvi")
+    ap.add_argument("--n-top-hvgs", type=int, default=4000)
+    ap.add_argument("--batch-key", default="sample")   # use "none" to disable, see below
+    ap.add_argument("--n-latent", type=int, default=30)
+    ap.add_argument("--epochs", dest="max_epochs", type=int, default=100)
+    ap.add_argument("--leiden-resolution", type=float, default=0.3)
+
+    # optional covariates (recommended since you want condition/chemistry)
+    ap.add_argument("--cat-cov", default="")
+    ap.add_argument("--cont-cov", default="")
+
+    args = ap.parse_args()
+
+    batch_key = None if (args.batch_key.lower() == "none") else args.batch_key
+
+    train_scvi(
+        input_h5ad=args.input_h5ad,
+        out_basename=args.out_basename,
+        n_top_hvgs=args.n_top_hvgs,
+        batch_key=batch_key,
+        n_latent=args.n_latent,
+        max_epochs=args.max_epochs,
+        leiden_resolution=args.leiden_resolution,
+        cat_cov=args.cat_cov,
+        cont_cov=args.cont_cov,
+    )
+
 if __name__ == "__main__":
-    train_scvi()
+    main()
+
+
+
